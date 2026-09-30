@@ -1,0 +1,80 @@
+:root {
+  /* Ink & steel — dark, industrial base */
+  --ink-900: #10141b;
+  --ink-800: #171d27;
+  --ink-700: #212a37;
+  --ink-600: #2d3849;
+  --ink-border: #333f52;
+
+  /* Cool paper — content surfaces, deliberately steel-tinted, not warm cream */
+  --paper-100: #eef1f4;
+  --paper-050: #f7f9fb;
+  --paper-white: #ffffff;
+  --ink-on-paper: #1a212c;
+  --muted-on-paper: #5c6b7e;
+
+  /* Amber — the workshop accent: hazard tape / copper wire warmth */
+  --amber-500: #d98e2b;
+  --amber-600: #b9741c;
+  --amber-100: #fbe8cc;
+
+  --success: #2f9463;
+  --success-bg: #e2f5ea;
+  --danger: #c94f4f;
+  --danger-bg: #fbe7e7;
+  --info: #3c7fc9;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-card: 0 1px 2px rgba(16, 20, 27, 0.06), 0 4px 16px rgba(16, 20, 27, 0.06);
+  --shadow-pop: 0 8px 30px rgba(16, 20, 27, 0.18);
+
+  --font-display: "Space Grotesk", "Archivo", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--paper-100);
+  color: var(--ink-on-paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+button {
+  font-family: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--amber-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

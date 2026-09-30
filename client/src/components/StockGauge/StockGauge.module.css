@@ -1,0 +1,57 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ticks {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 16px;
+}
+
+.tick {
+  width: 3px;
+  height: 8px;
+  background: var(--paper-100);
+  border: 1px solid var(--ink-border);
+  border-radius: 1px;
+}
+
+.tick:nth-child(4n) {
+  height: 14px;
+}
+
+.tick[data-filled="true"] {
+  background: var(--amber-500);
+  border-color: var(--amber-600);
+}
+
+.ticks[data-status="low"] .tick[data-filled="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.ticks[data-status="out"] .tick[data-filled="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.ticks[data-status="healthy"] .tick[data-filled="true"] {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted-on-paper);
+  white-space: nowrap;
+}
+
+.label[data-status="low"],
+.label[data-status="out"] {
+  color: var(--danger);
+  font-weight: 600;
+}

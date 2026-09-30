@@ -1,0 +1,154 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 0 18px;
+  gap: 14px;
+}
+
+.header h1 {
+  font-size: 24px;
+}
+
+.sub {
+  color: var(--muted-on-paper);
+  margin: 2px 0 0;
+  font-size: 13.5px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  padding: 16px;
+}
+
+.cardTop {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.iconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-100);
+  color: var(--amber-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.meta {
+  font-size: 12.5px;
+  color: var(--muted-on-paper);
+}
+
+.actions {
+  display: flex;
+  gap: 2px;
+}
+
+.iconBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted-on-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  background: var(--paper-100);
+  color: var(--ink-on-paper);
+}
+
+.address,
+.notes {
+  font-size: 12.5px;
+  color: var(--muted-on-paper);
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--paper-100);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 20, 27, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--paper-white);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 460px;
+  box-shadow: var(--shadow-pop);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--paper-100);
+}
+
+.form {
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 13.5px;
+  background: var(--danger-bg);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin: 0;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+@media (max-width: 560px) {
+  .row2 {
+    grid-template-columns: 1fr;
+  }
+}

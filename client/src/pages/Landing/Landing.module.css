@@ -1,0 +1,1297 @@
+.page {
+  min-height: 100vh;
+  background: var(--paper-050);
+}
+
+/* ---------- Nav ---------- */
+
+.nav {
+  background: var(--ink-900);
+  color: var(--paper-100);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.navInner {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.brandMark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-500);
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.navLinks {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+}
+
+.navLinks a {
+  color: #b7c0cd;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.navLinks a:hover {
+  color: var(--paper-white);
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menuToggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--paper-white);
+  cursor: pointer;
+}
+
+.mobileMenu {
+  display: none;
+}
+
+/* ---------- Buttons ---------- */
+
+.btnGhost,
+.btnAccent,
+.btnGhostLg,
+.btnAccentLg,
+.btnGhostLgDark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btnGhost {
+  padding: 9px 16px;
+  font-size: 13.5px;
+  color: var(--paper-100);
+  border-color: var(--ink-border);
+}
+
+.btnGhost:hover {
+  background: var(--ink-700);
+}
+
+.btnAccent {
+  padding: 9px 16px;
+  font-size: 13.5px;
+  background: var(--amber-500);
+  color: var(--ink-900);
+}
+
+.btnAccent:hover {
+  background: var(--amber-600);
+}
+
+.btnGhostLg {
+  padding: 13px 22px;
+  font-size: 15px;
+  color: var(--ink-on-paper);
+  border-color: #d7dce3;
+}
+
+.btnGhostLg:hover {
+  background: var(--paper-100);
+}
+
+.btnAccentLg {
+  padding: 13px 22px;
+  font-size: 15px;
+  background: var(--amber-500);
+  color: var(--ink-900);
+}
+
+.btnAccentLg:hover {
+  background: var(--amber-600);
+}
+
+/* Ghost button variant for use on the dark parallax hero — outlined in white
+   instead of dark, so it reads correctly against the photo overlay. */
+.btnGhostLgDark {
+  padding: 13px 22px;
+  font-size: 15px;
+  color: var(--paper-white);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btnGhostLgDark:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ---------- Eyebrow (small pill label above a section heading) ---------- */
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 16px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--amber-100);
+  color: var(--amber-600);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+.payments .eyebrow,
+.timeline .eyebrow,
+.pricing .eyebrow,
+.faq .eyebrow,
+.contact .eyebrow {
+  display: flex;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pricing .eyebrow {
+  background: rgba(245, 166, 35, 0.15);
+}
+
+/* ---------- Parallax hero ---------- */
+
+.heroParallax {
+  position: relative;
+  overflow: hidden;
+  min-height: 640px;
+  display: flex;
+  align-items: center;
+}
+
+.heroParallaxImg {
+  position: absolute;
+  inset: -20% 0 -20% 0;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--ink-900);
+  will-change: transform;
+}
+
+.heroParallaxOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 18, 24, 0.88) 0%, rgba(15, 18, 24, 0.82) 55%, rgba(15, 18, 24, 0.92) 100%);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 90px 24px 0;
+}
+
+.heroInner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+
+.heroText {
+  flex: 1;
+  min-width: 0;
+}
+
+.heroContent h1 {
+  font-size: 42px;
+  line-height: 1.15;
+  margin-bottom: 18px;
+  color: var(--paper-white);
+}
+
+.heroContent > .heroInner p {
+  font-size: 17px;
+  color: #c3cad4;
+  line-height: 1.6;
+  max-width: 560px;
+  margin: 0 0 30px;
+}
+
+.heroActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.heroHint {
+  font-size: 13px;
+  color: #8f98a6;
+  margin-top: 16px !important;
+}
+
+/* ---------- Hero visual (device frame mock) ---------- */
+
+.heroVisual {
+  flex: 0 0 clamp(380px, 52%, 720px);
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.deviceFrame {
+  width: 100%;
+  max-width: 460px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--paper-white);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.deviceBar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #eef1f5;
+  border-bottom: 1px solid #e2e6ec;
+}
+
+.deviceBar span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #cfd5dd;
+}
+
+.deviceScreen {
+  aspect-ratio: 16 / 11;
+  background: var(--paper-050);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A small, designed abstract dashboard mock — not real data, but reads as
+   "finished" rather than a debug placeholder. Swap for a real screenshot
+   (see the TODO comment in Landing.jsx) whenever one's ready. */
+.mockChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 70px;
+  padding: 0 4px;
+}
+
+.mockChart span {
+  flex: 1;
+  background: var(--amber-500);
+  border-radius: 3px 3px 0 0;
+  opacity: 0.85;
+}
+
+.mockRow {
+  height: 12px;
+  border-radius: 4px;
+  background: #e2e6ec;
+}
+
+.mockRow:nth-child(3) { width: 100%; }
+.mockRow:nth-child(4) { width: 80%; }
+.mockRow:nth-child(5) { width: 60%; }
+
+/* ---------- Stats bar ---------- */
+
+.statsBar {
+  max-width: 900px;
+  margin: 56px auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 28px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.statItem {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--paper-white);
+}
+
+.statLabel {
+  font-size: 12.5px;
+  color: #a8b2c2;
+}
+
+/* ---------- Section sub-heading (shared) ---------- */
+
+.sectionSub {
+  text-align: center;
+  color: var(--muted-on-paper);
+  font-size: 14.5px;
+  max-width: 560px;
+  margin: 0 auto 40px;
+}
+
+/* ---------- Payments ---------- */
+
+.payments {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 80px 24px 0;
+  text-align: center;
+}
+
+.payments h2 {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.paymentsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  text-align: left;
+}
+
+.paymentCard {
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  gap: 12px;
+}
+
+.paymentIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-100);
+  color: var(--amber-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.paymentCard h3 {
+  font-size: 14.5px;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paymentCard p {
+  font-size: 12.5px;
+  color: var(--muted-on-paper);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.soonBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--info);
+  background: #e7eefc;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Features ---------- */
+
+.features {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 40px 24px 90px;
+  text-align: center;
+}
+
+.features h2 {
+  font-size: 28px;
+  margin-bottom: 46px;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  text-align: left;
+}
+
+.featureCard {
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-pop);
+}
+
+.featureIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-100);
+  color: var(--amber-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.featureCard h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.featureCard p {
+  font-size: 13.5px;
+  color: var(--muted-on-paper);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ---------- Narrative / story section ---------- */
+
+.narrative {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 30px 24px 90px;
+}
+
+.narrativeInner {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- Image frames (bullet-proof) ----------
+   Drop a picture of ANY size or shape into a .mediaFrame and it fills the box
+   the same way every time: the frame keeps a fixed shape, the picture is scaled
+   to cover it and trimmed at the edges (never stretched or squashed).
+   --focus (set from IMAGE_FOCUS in Landing.jsx) picks which part stays visible. */
+
+.mediaFrame {
+  --frame-ratio: 1 / 1;
+  --frame-pad: 100%; /* same shape as --frame-ratio, for very old browsers */
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  aspect-ratio: var(--frame-ratio);
+  border-radius: var(--radius-lg);
+  background: var(--ink-900);
+}
+
+@supports not (aspect-ratio: 1 / 1) {
+  .mediaFrame::before {
+    content: "";
+    display: block;
+    padding-top: var(--frame-pad);
+  }
+}
+
+.mediaFrame > img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  display: block;
+}
+
+/* The picture itself. Default: fill the frame and trim the edges. */
+.mediaFrame > .mediaMain {
+  object-fit: cover;
+  object-position: var(--focus, 50% 50%);
+}
+
+/* The blurred copy behind it; only shown when the whole picture is displayed. */
+.mediaFrame > .mediaBackdrop {
+  display: none;
+  object-fit: cover;
+  filter: blur(30px) saturate(1.25) brightness(0.42);
+  transform: scale(1.25); /* hides the soft edges the blur creates */
+}
+
+/* Picture shape differs a lot from the frame: show ALL of it, centred. */
+.mediaFrame[data-fit="contain"] > .mediaBackdrop {
+  display: block;
+}
+
+.mediaFrame[data-fit="contain"] > .mediaMain {
+  object-fit: contain;
+  object-position: 50% 50%;
+  box-sizing: border-box;
+  padding: 14px;
+  filter: drop-shadow(0 16px 32px rgba(0, 0, 0, 0.5));
+}
+
+/* Hero picture: wide (landscape), matching a product/dashboard screenshot
+   at roughly 2:1. The .mediaMain "auto" focus logic above already adapts
+   to whatever shape you drop in, so this ratio just needs to match the
+   general shape of the images you'll actually use here. */
+.heroFrame {
+  --frame-ratio: 7 / 5;
+  --frame-pad: 71.43%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-pop);
+}
+
+/* "A day at the till" picture: square. */
+.tillFrame {
+  --frame-ratio: 1 / 1;
+  --frame-pad: 100%;
+  flex: 0 0 min(46%, 460px);
+  width: auto;
+  background: var(--paper-white);
+}
+
+.narrativeText {
+  flex: 1;
+  min-width: 0;
+}
+
+.narrativeText h2 {
+  font-size: 26px;
+  margin-bottom: 22px;
+}
+
+.narrativeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.narrativeList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14.5px;
+  color: var(--muted-on-paper);
+  line-height: 1.55;
+}
+
+.narrativeList li svg {
+  color: var(--amber-600);
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+/* ---------- Timeline ---------- */
+
+.timeline {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 24px 90px;
+  text-align: center;
+}
+
+.timeline h2 {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.timelineGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  text-align: left;
+}
+
+.timelineCard {
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.timelineCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-pop);
+}
+
+.timelineIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-100);
+  color: var(--amber-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.timelineDay {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--amber-600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.timelineCard h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.timelineCard p {
+  font-size: 13.5px;
+  color: var(--muted-on-paper);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ---------- Pricing ---------- */
+
+.pricing {
+  background: var(--ink-900);
+  color: var(--paper-100);
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.pricing h2 {
+  font-size: 28px;
+  color: var(--paper-white);
+  margin-bottom: 8px;
+}
+
+.pricingSub {
+  color: #a8b2c2;
+  font-size: 14.5px;
+  margin: 0 auto 46px;
+}
+
+.plansGrid {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+  text-align: left;
+}
+
+.planCard {
+  position: relative;
+  background: var(--ink-800);
+  border: 1px solid var(--ink-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease;
+}
+
+.planCard:hover {
+  transform: translateY(-3px);
+}
+
+.planCard[data-highlighted="true"] {
+  border-color: var(--amber-500);
+  background: var(--ink-700);
+}
+
+.planBadge {
+  position: absolute;
+  top: -12px;
+  left: 24px;
+  background: var(--amber-500);
+  color: var(--ink-900);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.planCard h3 {
+  font-size: 17px;
+  color: var(--paper-white);
+  margin-bottom: 10px;
+}
+
+.planPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.planAmount {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--paper-white);
+}
+
+.planPeriod {
+  font-size: 13px;
+  color: #a8b2c2;
+}
+
+.planDescription {
+  font-size: 13.5px;
+  color: #a8b2c2;
+  margin-bottom: 20px;
+  min-height: 40px;
+}
+
+.planFeatures {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.planFeatures li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #d5dae2;
+}
+
+.planFeatures li svg {
+  color: var(--amber-500);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.planCard .btnAccent,
+.planCard .btnGhost {
+  justify-content: center;
+  width: 100%;
+}
+
+/* ---------- FAQ ---------- */
+
+.faq {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 90px 24px;
+  text-align: center;
+}
+
+.faq h2 {
+  font-size: 26px;
+  margin-bottom: 40px;
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.faqItem {
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-lg);
+  background: var(--paper-white);
+  overflow: hidden;
+}
+
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink-on-paper);
+  cursor: pointer;
+}
+
+.faqChevron {
+  flex-shrink: 0;
+  color: var(--muted-on-paper);
+  transition: transform 0.15s ease;
+}
+
+.faqChevron[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.faqAnswerWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.faqAnswerWrap[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.faqAnswerInner {
+  overflow: hidden;
+}
+
+.faqAnswer {
+  padding: 0 20px 18px;
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted-on-paper);
+  line-height: 1.6;
+}
+
+/* ---------- Contact ---------- */
+
+.contact {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 0 24px 90px;
+  text-align: center;
+}
+
+.contactHeading {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.contactSub {
+  color: var(--muted-on-paper);
+  font-size: 14.5px;
+  max-width: 480px;
+  margin: 0 auto 36px;
+}
+
+.contactCards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.contactCard {
+  display: flex;
+  gap: 12px;
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.contactCardIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-100);
+  color: var(--amber-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contactCardLabel {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted-on-paper);
+  margin-bottom: 4px;
+}
+
+.contactCard strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-on-paper);
+  line-height: 1.5;
+}
+
+.contactCard p {
+  font-size: 12px;
+  color: var(--muted-on-paper);
+  margin: 4px 0 0;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 40px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.contactForm {
+  text-align: left;
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contactFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.contactForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted-on-paper);
+  font-weight: 600;
+}
+
+.contactForm input,
+.contactForm select,
+.contactForm textarea {
+  background: var(--paper-050);
+  border: 1px solid #d7dce3;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--ink-on-paper);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.contactForm input:focus,
+.contactForm select:focus,
+.contactForm textarea:focus {
+  outline: none;
+  border-color: var(--amber-500);
+}
+
+.contactForm button {
+  align-self: flex-start;
+}
+
+.privacyNote {
+  font-size: 12px;
+  color: var(--muted-on-paper);
+  margin: -6px 0 0;
+}
+
+/* ---------- Scroll reveal ---------- */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  background: var(--ink-900);
+  color: var(--paper-100);
+}
+
+.footerTop {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 56px 24px 40px;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 32px;
+}
+
+.footerBrandCol .brandMark {
+  margin-bottom: 4px;
+}
+
+.brandNameLight {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--paper-white);
+}
+
+.footerTagline {
+  font-size: 13.5px;
+  color: #a8b2c2;
+  line-height: 1.6;
+  margin: 14px 0 18px;
+  max-width: 320px;
+}
+
+.footerSocials {
+  display: flex;
+  gap: 8px;
+}
+
+.socialIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--ink-800);
+  color: var(--paper-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.socialIcon:hover {
+  background: var(--ink-700);
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footerColTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--paper-white);
+  margin-bottom: 4px;
+}
+
+.footerCol a {
+  color: #a8b2c2;
+  text-decoration: none;
+  font-size: 13.5px;
+}
+
+.footerCol a:hover {
+  color: var(--paper-white);
+}
+
+.footerContactLine {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #a8b2c2;
+  line-height: 1.4;
+}
+
+.footerContactLine svg {
+  color: var(--amber-500);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.footerInner {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  border-top: 1px solid var(--ink-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 18px;
+}
+
+.footerLinks a {
+  color: #a8b2c2;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.footerLinks a:hover {
+  color: var(--paper-white);
+}
+
+.footerCopy {
+  font-size: 12.5px;
+  color: #8f98a6;
+  margin: 0;
+}
+
+.footerCopy strong {
+  color: #c3cad4;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1080px) {
+  .featureGrid,
+  .plansGrid,
+  .timelineGrid {
+    grid-template-columns: 1fr;
+  }
+  .heroContent h1 {
+    font-size: 32px;
+  }
+  .heroInner {
+    flex-direction: column;
+    text-align: center;
+  }
+  .heroContent > .heroInner p {
+    margin: 0 auto 30px;
+  }
+  .heroActions {
+    justify-content: center;
+  }
+  .statsBar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 8px;
+  }
+  .paymentsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .narrativeInner {
+    flex-direction: column;
+    padding: 28px;
+  }
+  .heroVisual {
+    flex: none;
+    width: min(100%, 440px);
+  }
+  .tillFrame {
+    flex: none;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .contactCards,
+  .contactFormGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .paymentsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .navLinks,
+  .navActions {
+    display: none;
+  }
+  .menuToggle {
+    display: flex;
+    margin-left: auto;
+  }
+  .mobileMenu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 24px 16px;
+    border-top: 1px solid var(--ink-border);
+  }
+  .mobileMenu a {
+    color: var(--paper-100);
+    text-decoration: none;
+    padding: 10px 0;
+    font-size: 14.5px;
+  }
+  .footerTop {
+    grid-template-columns: 1fr 1fr;
+  }
+  .footerBrandCol {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .faqAnswerWrap,
+  .featureCard,
+  .timelineCard,
+  .planCard,
+  .socialIcon {
+    transition: none !important;
+  }
+}

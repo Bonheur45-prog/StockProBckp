@@ -1,0 +1,158 @@
+.page {
+  min-height: 100vh;
+  background: var(--paper-100);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 32px;
+}
+
+.centerBox {
+  margin: auto;
+  text-align: center;
+  color: var(--muted-on-paper);
+}
+
+.storeHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.storeLogo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.storeName {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--paper-white);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  box-shadow: var(--shadow-pop);
+}
+
+.imageWrap {
+  width: 140px;
+  height: 140px;
+  border-radius: var(--radius-sm);
+  background: var(--paper-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.imageWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.productName {
+  font-size: 18px;
+  font-family: var(--font-display);
+}
+
+.category {
+  font-size: 12.5px;
+  color: var(--muted-on-paper);
+  margin-top: -6px;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.price {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.inStock,
+.outOfStock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.inStock {
+  color: var(--success, #2f9463);
+}
+
+.outOfStock {
+  color: var(--danger, #c0492e);
+}
+
+.contactRow {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.contactBtn,
+.contactBtnWhatsapp {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.contactBtn {
+  background: var(--ink-900);
+  color: var(--paper-white);
+}
+
+.contactBtnWhatsapp {
+  background: #25d366;
+  color: #ffffff;
+}
+
+.phoneText {
+  font-size: 12px;
+  color: var(--muted-on-paper);
+}
+
+.muted {
+  color: var(--muted-on-paper);
+  font-size: 13.5px;
+}
+
+.poweredBy {
+  margin-top: 22px;
+  font-size: 12px;
+  color: var(--muted-on-paper);
+  text-decoration: none;
+}
+
+.poweredByBrand {
+  font-weight: 700;
+  color: var(--ink-on-paper);
+}

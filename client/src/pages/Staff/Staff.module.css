@@ -1,0 +1,148 @@
+.header {
+  padding: 20px 0 18px;
+}
+
+.header h1 {
+  font-size: 24px;
+}
+
+.sub {
+  color: var(--muted-on-paper);
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  max-width: 520px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted-on-paper);
+  font-size: 13.5px;
+}
+
+.barCell {
+  width: 90px;
+}
+
+.barTrack {
+  width: 80px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--paper-100);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: var(--amber-500);
+  border-radius: 999px;
+}
+
+@media (max-width: 860px) {
+  .cardHeader {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.teamCard {
+  margin-bottom: 20px;
+}
+
+.toggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: transparent;
+  color: var(--muted-on-paper);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.toggleBtn:hover {
+  background: var(--paper-100);
+  color: var(--ink-on-paper);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 20, 27, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--paper-white);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-pop);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--paper-100);
+}
+
+.closeBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted-on-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: var(--paper-100);
+}
+
+.form {
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.formError {
+  color: var(--danger, #c0492e);
+  font-size: 13px;
+  margin: 0;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}

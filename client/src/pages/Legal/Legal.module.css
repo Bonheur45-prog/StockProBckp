@@ -1,0 +1,82 @@
+.page {
+  min-height: 100vh;
+  background: var(--paper-050);
+}
+
+.nav {
+  background: var(--ink-900);
+  padding: 16px 24px;
+}
+
+.navInner {
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.brandMark {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--amber-500);
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11.5px;
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--paper-white);
+}
+
+.content {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 50px 24px 90px;
+}
+
+.content h1 {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+.updated {
+  color: var(--muted-on-paper);
+  font-size: 13px;
+  margin-bottom: 40px;
+}
+
+.content h2 {
+  font-size: 18px;
+  margin-top: 36px;
+  margin-bottom: 10px;
+}
+
+.content p,
+.content li {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #3a4351;
+}
+
+.content ul {
+  padding-left: 20px;
+  margin: 10px 0;
+}
+
+.content li {
+  margin-bottom: 6px;
+}
+
+.content a {
+  color: var(--amber-600);
+}

@@ -1,0 +1,136 @@
+.wrap {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 560px;
+  background: var(--ink-900);
+}
+
+.brandSide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  color: var(--paper-100);
+}
+
+.brandMark {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: var(--amber-500);
+  color: var(--ink-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 24px;
+}
+
+.brandSide h1 {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.brandSide p {
+  color: #a8b2c2;
+  font-size: 16px;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.formCard {
+  margin: 40px 40px 40px 0;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px;
+}
+
+.formCard h2 {
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 13.5px;
+  background: var(--danger-bg);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin: 0;
+}
+
+.switch {
+  margin-top: 20px;
+  font-size: 13.5px;
+  color: var(--muted-on-paper);
+  text-align: center;
+}
+
+.switch a {
+  color: var(--amber-600);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.stepActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--paper-100);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.reviewRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+}
+
+.reviewRow:nth-child(odd) {
+  background: var(--paper-100);
+}
+
+.reviewLabel {
+  color: var(--muted-on-paper);
+}
+
+.reviewValue {
+  font-weight: 600;
+  text-align: right;
+}
+
+@media (max-width: 780px) {
+  .wrap {
+    grid-template-columns: 1fr;
+  }
+  .brandSide {
+    padding: 40px 24px 10px;
+  }
+  .brandSide h1 {
+    font-size: 30px;
+  }
+  .formCard {
+    margin: 20px 16px 40px;
+    border-radius: var(--radius-lg);
+  }
+}

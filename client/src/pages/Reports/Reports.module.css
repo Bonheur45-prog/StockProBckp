@@ -1,0 +1,74 @@
+.header {
+  padding: 20px 0 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.header h1 {
+  font-size: 24px;
+}
+
+.sub {
+  color: var(--muted-on-paper);
+  margin: 2px 0 0;
+  font-size: 13.5px;
+}
+
+.periodHint {
+  font-weight: 400;
+  color: var(--muted-on-paper);
+  font-size: 13px;
+}
+
+.chartRow {
+  margin-bottom: 16px;
+}
+
+.barChartWrap {
+  margin-left: -12px;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.twoCol > * {
+  /* Grid items default to min-width: auto, which refuses to shrink below
+     the content's natural width — a wide table would force this card
+     wider than its column instead of letting data-table-wrap's own
+     overflow-x: auto take over. min-width: 0 is what allows that. */
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.cardHeader h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.muted {
+  color: var(--muted-on-paper);
+  font-size: 13.5px;
+}
+
+@media (max-width: 860px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}

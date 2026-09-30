@@ -1,0 +1,74 @@
+.header {
+  padding: 20px 0 18px;
+}
+
+.header h1 {
+  font-size: 24px;
+}
+
+.sub {
+  color: var(--muted-on-paper);
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  max-width: 560px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.itemMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.icon {
+  color: var(--danger);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.itemTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.reason {
+  color: var(--muted-on-paper);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.itemActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .itemActions {
+    flex-wrap: wrap;
+  }
+  .itemActions button {
+    flex: 1;
+  }
+}

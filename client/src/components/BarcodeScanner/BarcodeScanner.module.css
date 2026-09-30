@@ -1,0 +1,120 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 20, 27, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 60;
+}
+
+.modal {
+  background: var(--paper-white);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--paper-100);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.closeBtn,
+.iconToggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted-on-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.closeBtn:hover,
+.iconToggle:hover {
+  background: var(--paper-100);
+}
+
+.iconToggle {
+  color: var(--amber-600);
+}
+
+.viewport {
+  width: 100%;
+  min-height: 260px;
+  background: #0c0f14;
+}
+
+.manualForm {
+  display: flex;
+  gap: 8px;
+  padding: 22px 18px;
+}
+
+.manualForm > :first-child {
+  flex: 1;
+}
+
+.footer {
+  padding: 10px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted-on-paper);
+  margin: 0;
+}
+
+.switchModeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--amber-600);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.switchModeBtn:hover {
+  text-decoration: underline;
+}
+
+.error {
+  text-align: center;
+  font-size: 13px;
+  color: var(--danger);
+  padding: 12px 16px 0;
+  margin: 0;
+}

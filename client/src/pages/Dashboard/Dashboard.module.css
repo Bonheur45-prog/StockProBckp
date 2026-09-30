@@ -1,0 +1,98 @@
+.header {
+  padding: 20px 0 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.header h1 {
+  font-size: 26px;
+  margin-bottom: 4px;
+}
+
+.header p {
+  color: var(--muted-on-paper);
+  margin: 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chartRow {
+  margin-bottom: 20px;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.cardHeader h3 {
+  font-size: 15px;
+}
+
+.link {
+  font-size: 13px;
+  color: var(--amber-600);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.listRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--paper-100);
+}
+
+.listRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.listName {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
+.muted {
+  color: var(--muted-on-paper);
+  font-size: 13.5px;
+}
+
+@media (max-width: 860px) {
+  .statsGrid,
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}

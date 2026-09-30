@@ -1,0 +1,413 @@
+.wrap {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 18px;
+  padding-top: 20px;
+  align-items: start;
+}
+
+.catalogPane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* Same reasoning as Reports.module.css's .twoCol fix: as a grid item of
+     .wrap, this defaults to min-width: auto, which could let a wide
+     enough sales-history table force this column wider than its track
+     instead of scrolling internally. Not currently triggering it, but
+     closing off the same latent risk before it does. */
+  min-width: 0;
+}
+
+.catalogToolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.catalogToolbar .searchBox {
+  flex: 1;
+  position: relative;
+}
+
+.scanIconBtn {
+  width: 44px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid #d7dce3;
+  background: var(--paper-white);
+  color: var(--ink-on-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.scanIconBtn:hover {
+  border-color: var(--amber-500);
+  color: var(--amber-600);
+}
+
+.scanFeedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+}
+
+.scanFeedback[data-type="added"] {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.scanFeedback[data-type="missing"] {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.scanFeedback button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.customItemBox {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.7fr auto auto;
+  gap: 8px;
+  align-items: center;
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-on-paper);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 14px 12px 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #d7dce3;
+  font-size: 15px;
+  background: var(--paper-white);
+}
+
+@media (max-width: 860px) {
+  .searchInput {
+    font-size: 16px;
+  }
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--amber-500);
+  box-shadow: 0 0 0 3px var(--amber-100);
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.productTile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  background: var(--paper-white);
+  border: 1px solid #e2e6ec;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease, transform 0.08s ease;
+}
+
+.productTile:hover {
+  border-color: var(--amber-500);
+}
+
+.productTile:active {
+  transform: scale(0.98);
+}
+
+.tileName {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.tilePrice {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--amber-600);
+  font-weight: 600;
+}
+
+.tileStock {
+  font-size: 11.5px;
+  color: var(--muted-on-paper);
+}
+
+.cartPane {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cartHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cartHeader h3 {
+  font-size: 15px;
+}
+
+.cartItems {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.cartItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--paper-100);
+}
+
+.cartItemInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+}
+
+.cartItemName {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.qtyControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qtyControls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qtyControls button {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #d7dce3;
+  background: var(--paper-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.qtyControls span {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.removeBtn {
+  margin-left: auto;
+  color: var(--danger);
+  border-color: transparent !important;
+}
+
+.editPriceBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: transparent;
+  border: 1px dashed #c7cdd6;
+  border-radius: 6px;
+  padding: 3px 7px;
+  color: var(--muted-on-paper);
+  cursor: pointer;
+}
+
+.editPriceBtn:hover {
+  border-color: var(--amber-500);
+  color: var(--amber-600);
+}
+
+.priceEditInput {
+  width: 76px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 860px) {
+  .priceEditInput {
+    font-size: 16px;
+  }
+}
+
+.changeBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px dashed var(--paper-100);
+  border-bottom: 1px dashed var(--paper-100);
+}
+
+.changeRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.changeRow[data-negative="true"] {
+  color: var(--danger);
+}
+
+.cartFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--paper-100);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-on-paper);
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13.5px;
+  color: var(--muted-on-paper);
+}
+
+.totalRow[data-emphasis="true"] {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-on-paper);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.muted {
+  color: var(--muted-on-paper);
+  font-size: 13.5px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 13px;
+  background: var(--danger-bg);
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  margin: 0;
+}
+
+.receiptWrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.receiptCard {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 44px;
+  max-width: 340px;
+}
+
+.receiptActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.receiptTotal {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.historyCard {
+  margin-top: 18px;
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.historyHeader h3 {
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .wrap {
+    grid-template-columns: 1fr;
+  }
+  .cartPane {
+    position: static;
+  }
+  .customItemBox {
+    grid-template-columns: 1fr 1fr;
+  }
+  .customItemBox button {
+    grid-column: span 1;
+  }
+}
