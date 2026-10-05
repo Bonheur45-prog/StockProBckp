@@ -14,6 +14,7 @@ import storeRoutes from "./routes/storeRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
 import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -43,6 +44,7 @@ app.use("/api/store", storeRoutes);
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

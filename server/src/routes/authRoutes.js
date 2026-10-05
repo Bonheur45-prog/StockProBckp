@@ -26,8 +26,8 @@ router.post("/register-store", authLimiter, registerStore);
 router.post("/login", authLimiter, login);
 router.get("/me", protect, getMe);
 router.put("/me", protect, updateMe);
-router.post("/invite", protect, requireRole("owner", "manager"), inviteTeammate);
+router.post("/invite", protect, requireRole("owner"), inviteTeammate);
 router.get("/users", protect, requireRole("owner", "manager"), listTeammates);
-router.put("/users/:id", protect, requireRole("owner", "manager"), updateTeammate);
+router.put("/users/:id", protect, requireRole("owner"), updateTeammate);
 
 export default router;

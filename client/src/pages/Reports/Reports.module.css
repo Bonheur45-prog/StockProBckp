@@ -6,6 +6,25 @@
   gap: 14px;
 }
 
+.customRangeBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.customRangeBar input {
+  width: auto;
+}
+
+@media (max-width: 860px) {
+  .customRangeBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .header h1 {
   font-size: 24px;
 }

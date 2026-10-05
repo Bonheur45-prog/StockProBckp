@@ -118,10 +118,18 @@ export const login = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 
+  let store = null;
+  if (!user.isPlatformAdmin) {
+    store = await Store.findById(user.storeId);
+    if (!store || !store.isActive) {
+      res.status(403);
+      throw new Error("This store has been suspended. Contact support for help.");
+    }
+  }
+
   user.lastLoginAt = new Date();
   await user.save();
 
-  const store = await Store.findById(user.storeId);
   const token = generateToken(user._id);
   res.json({ token, user: user.toSafeJSON(), store });
 });

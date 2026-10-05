@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Activity, WifiOff, FileDown } from "lucide-react";
-import { Card, Badge, Button } from "../../components/ui/ui.jsx";
+import { Card, Badge, Button, Input } from "../../components/ui/ui.jsx";
 import Pagination from "../../components/Pagination/Pagination.jsx";
 import SalesChartCard from "../../components/SalesChartCard/SalesChartCard.jsx";
 import { getTopProducts, listSales, listProducts, getStatForPeriod, getSalesSeries, listCustomerBalances, effectiveLowStockThreshold } from "../../lib/repo.js";
@@ -27,6 +27,34 @@ function lastNDays(n) {
 export default function Reports() {
   const { store } = useAuth();
   const nav = usePeriodNavigator("month");
+
+  // Custom date range — Reports-only, layered on top of the existing
+  // Today/This Month/This Year navigator rather than replacing it. When
+  // set, it wins over nav.period/nav.offset for Top Products, the
+  // Activity trail, and PDF export; the bucketed chart above keeps using
+  // the preset navigator regardless (see getSalesSeries — its hourly/
+  // daily/monthly bucketing doesn't have a sensible answer for an
+  // arbitrary range without its own, separate bucket-sizing logic).
+  const [customRange, setCustomRange] = useState(null);
+  const [rangeDraft, setRangeDraft] = useState({ start: "", end: "" });
+
+  function applyCustomRange() {
+    if (!rangeDraft.start || !rangeDraft.end) return;
+    const start = new Date(rangeDraft.start);
+    const end = new Date(rangeDraft.end);
+    end.setDate(end.getDate() + 1); // end date inclusive of its whole day
+    if (start >= end) return;
+    setCustomRange({ start, end });
+  }
+
+  function clearCustomRange() {
+    setCustomRange(null);
+    setRangeDraft({ start: "", end: "" });
+  }
+
+  const effectiveRangeLabel = customRange
+    ? `${customRange.start.toLocaleDateString()} – ${new Date(customRange.end.getTime() - 86400000).toLocaleDateString()}`
+    : nav.rangeLabel;
 
   const [topProducts, setTopProducts] = useState([]);
   const [last14DaysData, setLast14DaysData] = useState([]);
@@ -58,12 +86,12 @@ export default function Reports() {
 
   // Top products follows the same period the chart is showing (time-travel included).
   useEffect(() => {
-    getTopProducts(nav.period, nav.offset).then(setTopProducts);
+    getTopProducts(nav.period, nav.offset, false, customRange).then(setTopProducts);
     topProductsPage.setPage(1);
-    const interval = setInterval(() => getTopProducts(nav.period, nav.offset).then(setTopProducts), 5000);
+    const interval = setInterval(() => getTopProducts(nav.period, nav.offset, false, customRange).then(setTopProducts), 5000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nav.period, nav.offset]);
+  }, [nav.period, nav.offset, customRange]);
 
   useEffect(() => {
     loadLast14Days();
@@ -71,10 +99,10 @@ export default function Reports() {
     return () => clearInterval(interval);
   }, []);
 
-  // Activity trail follows the same period too.
+  // Activity trail follows the same period too — or the custom range, when active.
   useEffect(() => {
     setActivityPage(1);
-  }, [nav.period, nav.offset]);
+  }, [nav.period, nav.offset, customRange]);
 
   useEffect(() => {
     if (!navigator.onLine) {
@@ -82,13 +110,14 @@ export default function Reports() {
       return;
     }
     setActivityError(false);
+    const range = customRange || nav.range;
     api
       .get("/reports/activity", {
         params: {
           page: activityPage,
           limit: ACTIVITY_PAGE_SIZE,
-          from: nav.range.start.toISOString(),
-          to: nav.range.end.toISOString(),
+          from: range.start.toISOString(),
+          to: range.end.toISOString(),
         },
       })
       .then(({ data }) => {
@@ -96,7 +125,7 @@ export default function Reports() {
         setActivityTotal(data.total);
       })
       .catch(() => setActivityError(true));
-  }, [activityPage, nav.range]);
+  }, [activityPage, nav.range, customRange]);
 
   const currency = store?.currency || "RWF";
   const activityPageCount = Math.max(1, Math.ceil(activityTotal / ACTIVITY_PAGE_SIZE));
@@ -106,19 +135,20 @@ export default function Reports() {
     try {
       const [{ generateReportPdf }, sales, items, revenue, products, allSales, balances] = await Promise.all([
         import("../../lib/pdfReport.js"),
-        getStatForPeriod("sales", nav.period, nav.offset),
-        getStatForPeriod("items", nav.period, nav.offset),
-        getStatForPeriod("revenue", nav.period, nav.offset),
+        getStatForPeriod("sales", nav.period, nav.offset, customRange),
+        getStatForPeriod("items", nav.period, nav.offset, customRange),
+        getStatForPeriod("revenue", nav.period, nav.offset, customRange),
         listProducts(),
         listSales(),
         listCustomerBalances(),
       ]);
       const lowStock = products.filter((p) => p.quantityOnHand <= effectiveLowStockThreshold(p, store));
 
+      const exportRange = customRange || nav.range;
       const inRange = allSales.filter((s) => {
         if (s.status !== "completed") return false;
         const t = new Date(s.occurredAt);
-        return t >= nav.range.start && t < nav.range.end;
+        return t >= exportRange.start && t < exportRange.end;
       });
 
       // Payment method breakdown
@@ -160,7 +190,7 @@ export default function Reports() {
       if (navigator.onLine) {
         try {
           const { data } = await api.get("/reports/staff-performance", {
-            params: { from: nav.range.start.toISOString(), to: nav.range.end.toISOString() },
+            params: { from: exportRange.start.toISOString(), to: exportRange.end.toISOString() },
           });
           staffPerformance = data;
         } catch {
@@ -176,7 +206,7 @@ export default function Reports() {
       await generateReportPdf({
         storeName: store?.name || "Store",
         storeLogoUrl: store?.logoUrl,
-        periodLabel: nav.rangeLabel,
+        periodLabel: effectiveRangeLabel,
         currency,
         stats: { sales: sales.value, revenue: revenue.value, items: items.value },
         topProducts,
@@ -205,6 +235,15 @@ export default function Reports() {
         </Button>
       </div>
 
+      <div className={styles.customRangeBar}>
+        <Input type="date" value={rangeDraft.start} onChange={(e) => setRangeDraft((d) => ({ ...d, start: e.target.value }))} />
+        <span className={styles.muted}>to</span>
+        <Input type="date" value={rangeDraft.end} onChange={(e) => setRangeDraft((d) => ({ ...d, end: e.target.value }))} />
+        <Button variant="ghost" onClick={applyCustomRange}>Apply range</Button>
+        {customRange && <Button variant="ghost" onClick={clearCustomRange}>Clear</Button>}
+        {customRange && <span className={styles.muted}>Applies to Top products, Activity trail, and PDF export — not the chart below.</span>}
+      </div>
+
       <div className={styles.chartRow}>
         <SalesChartCard currency={currency} navigator={nav} />
       </div>
@@ -229,7 +268,7 @@ export default function Reports() {
 
       <div className={styles.twoCol}>
         <Card>
-          <h3 className={styles.cardTitle}>Top products <span className={styles.periodHint}>— {nav.rangeLabel}</span></h3>
+          <h3 className={styles.cardTitle}>Top products <span className={styles.periodHint}>— {effectiveRangeLabel}</span></h3>
           {topProducts.length === 0 ? (
             <p className={styles.muted}>No sales recorded for this period.</p>
           ) : (
@@ -270,7 +309,7 @@ export default function Reports() {
         <Card>
           <div className={styles.cardHeader}>
             <Activity size={16} />
-            <h3>Activity trail <span className={styles.periodHint}>— {nav.rangeLabel}</span></h3>
+            <h3>Activity trail <span className={styles.periodHint}>— {effectiveRangeLabel}</span></h3>
           </div>
           {activityError ? (
             <p className={styles.muted}><WifiOff size={14} style={{ verticalAlign: -2, marginRight: 5 }} />Connect to the internet to view the activity trail.</p>

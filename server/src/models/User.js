@@ -3,7 +3,9 @@ import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
-    storeId: { type: mongoose.Schema.Types.ObjectId, ref: "Store", required: true, index: true },
+    // Optional — only unset for a platform-admin account (see
+    // isPlatformAdmin below), which isn't scoped to any one store.
+    storeId: { type: mongoose.Schema.Types.ObjectId, ref: "Store", index: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
@@ -12,6 +14,10 @@ const userSchema = new mongoose.Schema(
       enum: ["owner", "manager", "cashier"],
       default: "cashier",
     },
+    // A platform admin (BrightLink Technologies staff) manages every store
+    // across the whole app — never created through public signup, only
+    // via a one-off script (see server/scripts/createPlatformAdmin.mjs).
+    isPlatformAdmin: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
   },
@@ -38,6 +44,7 @@ userSchema.methods.toSafeJSON = function () {
     email: this.email,
     role: this.role,
     isActive: this.isActive,
+    isPlatformAdmin: this.isPlatformAdmin,
   };
 };
 

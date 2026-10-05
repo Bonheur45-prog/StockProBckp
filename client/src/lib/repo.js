@@ -503,7 +503,10 @@ function daysInMonth(year, month) {
  * period (end = the exact boundary, e.g. midnight on the 1st of the next
  * month) — this is what powers the ‹ › time-travel navigation.
  */
-export function getPeriodRange(period, offset = 0) {
+export function getPeriodRange(period, offset = 0, override = null) {
+  // Custom date range (Reports only) — wins regardless of period/offset.
+  if (override) return override;
+
   const now = new Date();
 
   if (period === "year") {
@@ -581,15 +584,19 @@ function percentChange(current, previous) {
  * vs. yesterday, this month-to-date vs. the same number of days last
  * month, etc).
  */
-export async function getStatForPeriod(metric, period, offset = 0) {
+export async function getStatForPeriod(metric, period, offset = 0, customRange = null) {
   const allSales = (await listSales()).filter((s) => s.status === "completed");
-  const range = getPeriodRange(period, offset);
-  const prevRange = getPreviousRange(range, period, offset);
-
-  const current = sumSales(allSales, range.start, range.end);
-  const previous = sumSales(allSales, prevRange.start, prevRange.end);
-
+  const range = getPeriodRange(period, offset, customRange);
   const key = metric === "sales" ? "count" : metric === "revenue" ? "revenue" : "items";
+  const current = sumSales(allSales, range.start, range.end);
+
+  if (customRange) {
+    // No well-defined "previous period" for an arbitrary range.
+    return { value: current[key], change: null };
+  }
+
+  const prevRange = getPreviousRange(range, period, offset);
+  const previous = sumSales(allSales, prevRange.start, prevRange.end);
   return { value: current[key], change: percentChange(current[key], previous[key]) };
 }
 
@@ -637,11 +644,11 @@ export async function getSalesSeries(period, offset = 0) {
 }
 
 /** Top products by revenue for a given period, from local sales — used by the Reports table. */
-export async function getTopProducts(period = "year", offset = 0, allTime = false) {
+export async function getTopProducts(period = "year", offset = 0, allTime = false, customRange = null) {
   const sales = (await listSales()).filter((s) => s.status === "completed");
   let inRange = sales;
   if (!allTime) {
-    const { start, end } = getPeriodRange(period, offset);
+    const { start, end } = getPeriodRange(period, offset, customRange);
     inRange = sales.filter((s) => {
       const t = new Date(s.occurredAt);
       return t >= start && t < end;

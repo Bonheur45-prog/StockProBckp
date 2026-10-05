@@ -7,6 +7,12 @@ import Privacy from "./pages/Legal/Privacy.jsx";
 import PublicProduct from "./pages/PublicProduct/PublicProduct.jsx";
 import Login from "./pages/Auth/Login.jsx";
 import Register from "./pages/Auth/Register.jsx";
+import AdminProtectedRoute from "./components/AdminProtectedRoute/AdminProtectedRoute.jsx";
+import AdminLayout from "./components/AdminLayout/AdminLayout.jsx";
+import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
+import AdminStores from "./pages/Admin/AdminStores.jsx";
+import AdminStoreDetail from "./pages/Admin/AdminStoreDetail.jsx";
+import AdminSupport from "./pages/Admin/AdminSupport.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import Products from "./pages/Products/Products.jsx";
 import POS from "./pages/POS/POS.jsx";
@@ -21,7 +27,8 @@ import SyncIssues from "./pages/SyncIssues/SyncIssues.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const homeRoute = user?.isPlatformAdmin ? "/admin" : "/app";
 
   return (
     <Routes>
@@ -34,8 +41,8 @@ export default function App() {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/p/:storeSlug/:barcode" element={<PublicProduct />} />
 
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/app" replace /> : <Login />} />
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/app" replace /> : <Register />} />
+      <Route path="/login" element={isAuthenticated ? <Navigate to={homeRoute} replace /> : <Login />} />
+      <Route path="/register" element={isAuthenticated ? <Navigate to={homeRoute} replace /> : <Register />} />
 
       {/* The product itself lives under /app, separate from the public site. */}
       <Route
@@ -61,6 +68,23 @@ export default function App() {
             is a local action, same trust level regardless of role (see
             discardStuckRecord's docstring). Reached via the sync badge. */}
         <Route path="sync-issues" element={<SyncIssues />} />
+      </Route>
+
+      {/* Platform-admin shell — BrightLink Technologies staff only, never
+          reachable through public signup. Completely separate from /app:
+          no storeId scoping, no offline/Dexie, just live API calls. */}
+      <Route
+        path="/admin"
+        element={
+          <AdminProtectedRoute>
+            <AdminLayout />
+          </AdminProtectedRoute>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="stores" element={<AdminStores />} />
+        <Route path="stores/:id" element={<AdminStoreDetail />} />
+        <Route path="support" element={<AdminSupport />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

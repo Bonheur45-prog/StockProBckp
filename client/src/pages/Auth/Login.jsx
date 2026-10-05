@@ -18,8 +18,8 @@ export default function Login() {
     e.preventDefault();
     setError("");
     try {
-      await login(form);
-      navigate("/app");
+      const user = await login(form);
+      navigate(user?.isPlatformAdmin ? "/admin" : "/app");
     } catch (err) {
       setError(err.response?.data?.message || "Couldn't sign in. Check your details and try again.");
     }

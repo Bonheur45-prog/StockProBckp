@@ -21,6 +21,9 @@ export default function Staff() {
   const [addError, setAddError] = useState("");
 
   const canView = user?.role === "owner" || user?.role === "manager";
+  // Managers can see the roster (useful context) but can no longer create
+  // or deactivate accounts — that's owner-only now.
+  const canManageTeam = user?.role === "owner";
 
   async function loadTeam() {
     try {
@@ -119,9 +122,11 @@ export default function Staff() {
       <Card className={styles.teamCard}>
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}><Users size={16} /> Team</span>
-          <Button variant="accent" onClick={() => setAddOpen(true)}>
-            <UserPlus size={15} /> Add teammate
-          </Button>
+          {canManageTeam && (
+            <Button variant="accent" onClick={() => setAddOpen(true)}>
+              <UserPlus size={15} /> Add teammate
+            </Button>
+          )}
         </div>
 
         {teamError ? (
@@ -137,7 +142,7 @@ export default function Staff() {
                   <th>Email</th>
                   <th>Role</th>
                   <th>Status</th>
-                  {canView && <th />}
+                  {canManageTeam && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -149,7 +154,7 @@ export default function Staff() {
                     <td>
                       <Badge tone={m.isActive ? "success" : "amber"}>{m.isActive ? "Active" : "Deactivated"}</Badge>
                     </td>
-                    {canView && (
+                    {canManageTeam && (
                       <td>
                         {m.role !== "owner" && (
                           <button className={styles.toggleBtn} onClick={() => handleToggleActive(m)}>
@@ -219,7 +224,7 @@ export default function Staff() {
         )}
       </Card>
 
-      {addOpen && (
+      {canManageTeam && addOpen && (
         <div className={styles.overlay} onClick={() => !addSaving && setAddOpen(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>

@@ -1,0 +1,131 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: var(--ink-900);
+  color: var(--paper-white);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 20px;
+  color: var(--amber-500);
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--paper-white);
+}
+
+.brandSub {
+  font-size: 11px;
+  color: #8a96a8;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: var(--radius-sm);
+  color: #b7c0cd;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.navItem:hover {
+  background: var(--ink-700);
+  color: var(--paper-white);
+}
+
+.navItemActive {
+  background: var(--amber-500);
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.userBox {
+  border-top: 1px solid var(--ink-700);
+  padding-top: 14px;
+  margin-top: 10px;
+}
+
+.userName {
+  font-size: 12.5px;
+  color: #b7c0cd;
+  padding: 0 10px 10px;
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--ink-700);
+  color: #e2a6a6;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px;
+  background: var(--paper-100);
+}
+
+@media (max-width: 860px) {
+  .shell {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px;
+    gap: 16px;
+  }
+  .brand {
+    padding: 0;
+  }
+  .nav {
+    flex-direction: row;
+    flex: none;
+  }
+  .navItem span {
+    display: none;
+  }
+  .userBox {
+    display: none;
+  }
+  .content {
+    padding: 16px;
+  }
+}
