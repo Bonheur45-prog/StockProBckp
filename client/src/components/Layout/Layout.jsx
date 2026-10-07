@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
-import { LayoutGrid, Package, ShoppingCart, ClipboardList, BarChart3, Users, Award, Settings, Truck, ShoppingBag, LogOut, MoreHorizontal, ScanSearch } from "lucide-react";
+import { LayoutGrid, Package, ShoppingCart, ClipboardList, BarChart3, Users, Award, Settings, Truck, ShoppingBag, Receipt, LogOut, MoreHorizontal, ScanSearch } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { runSync, pendingChangeCount } from "../../lib/sync.js";
 import { findProductByBarcode } from "../../lib/repo.js";
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { to: "/app/stock", label: "Stock", icon: ClipboardList, primary: true },
   { to: "/app/suppliers", label: "Suppliers", icon: Truck, roles: ["owner", "manager"] },
   { to: "/app/purchase-orders", label: "Purchase Orders", icon: ShoppingBag, roles: ["owner", "manager"] },
+  { to: "/app/expenses", label: "Expenses", icon: Receipt, roles: ["owner", "manager"] },
   { to: "/app/customers", label: "Customers", icon: Users },
   { to: "/app/reports", label: "Reports", icon: BarChart3, primary: true },
   { to: "/app/staff", label: "Staff", icon: Award, roles: ["owner", "manager"] },

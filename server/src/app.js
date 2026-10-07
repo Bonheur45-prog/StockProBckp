@@ -13,6 +13,7 @@ import creditRoutes from "./routes/creditRoutes.js";
 import storeRoutes from "./routes/storeRoutes.js";
 import supplierRoutes from "./routes/supplierRoutes.js";
 import purchaseOrderRoutes from "./routes/purchaseOrderRoutes.js";
+import expenseRoutes from "./routes/expenseRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
@@ -43,6 +44,7 @@ app.use("/api/credit", creditRoutes);
 app.use("/api/store", storeRoutes);
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
+app.use("/api/expenses", expenseRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/admin", adminRoutes);
 

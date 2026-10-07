@@ -14,6 +14,8 @@ const TABLES = {
   supplier: db.suppliers,
   purchaseOrder: db.purchaseOrders,
   poReceipt: db.poReceipts,
+  expense: db.expenses,
+  priceHistory: db.priceHistory,
 };
 
 /**
@@ -29,6 +31,16 @@ function currentAuthedStoreId() {
     return JSON.parse(localStorage.getItem("user") || "null")?.storeId ?? null;
   } catch {
     return null;
+  }
+}
+
+/** Only owner/manager are sent finance data (expenses, price history) — see syncController.pull. */
+function currentAuthedRoleCanSeeFinance() {
+  try {
+    const role = JSON.parse(localStorage.getItem("user") || "null")?.role;
+    return role === "owner" || role === "manager";
+  } catch {
+    return false;
   }
 }
 
@@ -84,7 +96,10 @@ async function pushDirty() {
   // against — see its comment at the reconcile step for why this matters.
   const startingStoreId = currentAuthedStoreId();
 
-  const [dirtyProducts, dirtySales, dirtyMovements, dirtyPayments, dirtySuppliers, dirtyPOs, dirtyReceipts] = await Promise.all([
+  const [
+    dirtyProducts, dirtySales, dirtyMovements, dirtyPayments, dirtySuppliers, dirtyPOs, dirtyReceipts,
+    dirtyExpenses, dirtyHistory,
+  ] = await Promise.all([
     db.products.where("dirty").equals(1).toArray(),
     db.sales.where("dirty").equals(1).toArray(),
     db.stockMovements.where("dirty").equals(1).toArray(),
@@ -92,11 +107,14 @@ async function pushDirty() {
     db.suppliers.where("dirty").equals(1).toArray(),
     db.purchaseOrders.where("dirty").equals(1).toArray(),
     db.poReceipts.where("dirty").equals(1).toArray(),
+    db.expenses.where("dirty").equals(1).toArray(),
+    db.priceHistory.where("dirty").equals(1).toArray(),
   ]);
 
   const nothingToPush =
     !dirtyProducts.length && !dirtySales.length && !dirtyMovements.length && !dirtyPayments.length &&
-    !dirtySuppliers.length && !dirtyPOs.length && !dirtyReceipts.length;
+    !dirtySuppliers.length && !dirtyPOs.length && !dirtyReceipts.length &&
+    !dirtyExpenses.length && !dirtyHistory.length;
   if (nothingToPush) return;
 
   const { data } = await api.post("/sync/push", {
@@ -107,6 +125,8 @@ async function pushDirty() {
     suppliers: dirtySuppliers.map(toServerPayload),
     purchaseOrders: dirtyPOs.map(toServerPayload),
     poReceipts: dirtyReceipts.map(toServerPayload),
+    expenses: dirtyExpenses.map(toServerPayload),
+    priceHistory: dirtyHistory.map(toServerPayload),
   });
 
   // Reconcile: server response gives us the canonical doc for everything
@@ -120,6 +140,8 @@ async function pushDirty() {
   const failedSupplierIds = failedIds("supplier");
   const failedPOIds = failedIds("purchaseOrder");
   const failedReceiptIds = failedIds("poReceipt");
+  const failedExpenseIds = failedIds("expense");
+  const failedHistoryIds = failedIds("priceHistory");
 
   // The active session can change while this request was in flight —
   // initSyncLoop's 30s background sync runs regardless of auth state, and
@@ -138,6 +160,7 @@ async function pushDirty() {
   await db.transaction(
     "rw",
     db.products, db.sales, db.stockMovements, db.creditPayments, db.suppliers, db.purchaseOrders, db.poReceipts,
+    db.expenses, db.priceHistory,
     async () => {
       for (const p of data.products) {
         if (failedProductIds.has(p.clientId)) continue;
@@ -162,6 +185,14 @@ async function pushDirty() {
       for (const po of data.purchaseOrders || []) {
         if (failedPOIds.has(po.clientId)) continue;
         await db.purchaseOrders.put({ ...po, id: po._id, dirty: 0 });
+      }
+      for (const e of data.expenses || []) {
+        if (failedExpenseIds.has(e.clientId)) continue;
+        await db.expenses.put({ ...e, id: e._id, dirty: 0 });
+      }
+      for (const h of data.priceHistory || []) {
+        if (failedHistoryIds.has(h.clientId)) continue;
+        await db.priceHistory.put({ ...h, id: h._id, dirty: 0 });
       }
       for (const r of data.poReceipts || []) {
         if (failedReceiptIds.has(r.clientId)) continue;
@@ -197,7 +228,14 @@ async function pushDirty() {
 async function pullChanges() {
   const startingStoreId = currentAuthedStoreId();
   const since = await getMeta("lastPulledAt", null);
-  const { data } = await api.get("/sync/pull", { params: since ? { since } : {} });
+  // Finance data has its own cursor (see syncController.pull for why). Only
+  // sent for roles the server will actually answer for; a device that has
+  // never received finance data omits it and gets everything.
+  const financeSince = currentAuthedRoleCanSeeFinance() ? await getMeta("financePulledAt", null) : null;
+  const params = {};
+  if (since) params.since = since;
+  if (financeSince) params.financeSince = financeSince;
+  const { data } = await api.get("/sync/pull", { params });
 
   // Same guard and same reasoning as pushDirty() above — the response we
   // just got back was requested under whatever store was active when this
@@ -208,6 +246,7 @@ async function pullChanges() {
   await db.transaction(
     "rw",
     db.products, db.sales, db.stockMovements, db.creditPayments, db.suppliers, db.purchaseOrders,
+    db.expenses, db.priceHistory,
     async () => {
       for (const p of data.products) {
         // Don't clobber a record we have local unsynced edits for.
@@ -240,10 +279,23 @@ async function pullChanges() {
         if (local?.dirty) continue;
         await db.purchaseOrders.put({ ...po, clientId: po.clientId || po._id, id: po._id, dirty: 0 });
       }
+      for (const e of data.expenses || []) {
+        const local = e.clientId ? await db.expenses.get(e.clientId) : null;
+        if (local?.dirty) continue;
+        await db.expenses.put({ ...e, clientId: e.clientId || e._id, id: e._id, dirty: 0 });
+      }
+      for (const h of data.priceHistory || []) {
+        const local = h.clientId ? await db.priceHistory.get(h.clientId) : null;
+        if (local?.dirty) continue;
+        await db.priceHistory.put({ ...h, clientId: h.clientId || h._id, id: h._id, dirty: 0 });
+      }
     }
   );
 
   await setMeta("lastPulledAt", data.serverTime);
+  // Advance the finance cursor only if the server actually included finance
+  // data in this response — otherwise a later promotion would skip history.
+  if (data.financeIncluded) await setMeta("financePulledAt", data.serverTime);
 }
 
 /** Call once at app startup: syncs on load, on reconnect, and every 30s while online. */
@@ -261,7 +313,7 @@ export function initSyncLoop() {
 
 export async function pendingChangeCount() {
   const storeId = currentAuthedStoreId();
-  const [p, s, m, c, sup, po, r] = await Promise.all([
+  const [p, s, m, c, sup, po, r, ex, ph] = await Promise.all([
     db.products.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
     db.sales.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
     db.stockMovements.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
@@ -269,8 +321,10 @@ export async function pendingChangeCount() {
     db.suppliers.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
     db.purchaseOrders.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
     db.poReceipts.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
+    db.expenses.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
+    db.priceHistory.where("dirty").equals(1).and((x) => x.storeId === storeId).count(),
   ]);
-  return p + s + m + c + sup + po + r;
+  return p + s + m + c + sup + po + r + ex + ph;
 }
 
 /**

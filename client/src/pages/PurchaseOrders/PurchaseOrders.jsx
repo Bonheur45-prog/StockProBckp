@@ -1,13 +1,14 @@
 import { useEffect, useState, Fragment } from "react";
 import {
   Plus, X, ChevronDown, ChevronUp, PackageCheck,
-  TrendingDown, Trash2,
+  TrendingDown, Trash2, Printer, Share2,
 } from "lucide-react";
 import { Card, Button, Field, Input, Select, Badge, EmptyState } from "../../components/ui/ui.jsx";
 import {
   listPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, updatePurchaseOrderStatus,
   listSuppliers, listProducts, getReorderSuggestions,
 } from "../../lib/repo.js";
+import { loadStoreLogo, printPurchaseOrder, sharePurchaseOrder } from "../../lib/poPdf.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import styles from "./PurchaseOrders.module.css";
 
@@ -46,6 +47,10 @@ export default function PurchaseOrders() {
   const [saving, setSaving] = useState(false);
   const [receiving, setReceiving] = useState(false);
 
+  const [logo, setLogo] = useState(null); // store logo, pre-loaded so Share never waits on the network inside the tap
+  const [notice, setNotice] = useState(null); // { tone: "warn" | "error", text } — result of Print/Share
+  const [sharingId, setSharingId] = useState(null);
+
   const [receiveTarget, setReceiveTarget] = useState(null); // order being received against
   const [receiveQuantities, setReceiveQuantities] = useState({});
 
@@ -64,6 +69,49 @@ export default function PurchaseOrders() {
     const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadStoreLogo(store?.logoUrl).then((dataUrl) => {
+      if (!cancelled) setLogo(dataUrl);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [store?.logoUrl]);
+
+  function supplierFor(order) {
+    return suppliers.find((s) => s.clientId === order.supplierId || s.id === order.supplierId) || null;
+  }
+
+  // The PDF includes unit costs, so Print/Share are owner/manager only (canEdit).
+  function handlePrint(order) {
+    setNotice(null);
+    try {
+      const result = printPurchaseOrder({ order, store, supplier: supplierFor(order), logoDataUrl: logo });
+      if (result.method === "download") {
+        setNotice({ tone: "warn", text: "Your browser blocked the print window, so the PDF was downloaded instead — open it to print." });
+      }
+    } catch (err) {
+      setNotice({ tone: "error", text: err.message || "Couldn't prepare the PDF" });
+    }
+  }
+
+  async function handleShare(order) {
+    setNotice(null);
+    setSharingId(order.clientId);
+    try {
+      const result = await sharePurchaseOrder({ order, store, supplier: supplierFor(order), logoDataUrl: logo });
+      if (result.method === "download") {
+        setNotice({ tone: "warn", text: "This browser can't share files directly, so the PDF was downloaded — attach it in WhatsApp or email to send it." });
+      }
+      // "share" and "cancelled" need no message: we can't know whether it was actually sent, so we don't claim it was.
+    } catch (err) {
+      setNotice({ tone: "error", text: err.message || "Couldn't share the PDF" });
+    } finally {
+      setSharingId(null);
+    }
+  }
 
   const currency = store?.currency || "RWF";
 
@@ -171,6 +219,13 @@ export default function PurchaseOrders() {
         )}
       </div>
 
+      {notice && (
+        <div className={styles.notice} data-tone={notice.tone} role="status">
+          <span>{notice.text}</span>
+          <button className={styles.noticeClose} onClick={() => setNotice(null)} aria-label="Dismiss"><X size={14} /></button>
+        </div>
+      )}
+
       {suggestions.length > 0 && (
         <Card className={styles.suggestionsCard}>
           <div className={styles.cardHeader}>
@@ -241,6 +296,16 @@ export default function PurchaseOrders() {
                         <td data-align="right" className="data-table-mono">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "—"}</td>
                         <td onClick={(e) => e.stopPropagation()}>
                           <div className={styles.rowActions}>
+                            {canEdit && order.status !== "cancelled" && (
+                              <>
+                                <Button variant="ghost" size="sm" onClick={() => handlePrint(order)} title="Print this order as a PDF">
+                                  <Printer size={14} /> Print
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleShare(order)} disabled={sharingId === order.clientId} title="Send this order as a PDF (WhatsApp, email…)">
+                                  <Share2 size={14} /> {sharingId === order.clientId ? "Preparing…" : "Share"}
+                                </Button>
+                              </>
+                            )}
                             {canReceive && (
                               <Button variant="ghost" size="sm" onClick={() => openReceive(order)}>
                                 <PackageCheck size={14} /> Receive

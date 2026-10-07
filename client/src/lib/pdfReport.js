@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-async function loadImageAsDataUrl(url) {
+export async function loadImageAsDataUrl(url) {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -17,7 +17,7 @@ async function loadImageAsDataUrl(url) {
   }
 }
 
-function imageFormatFromDataUrl(dataUrl) {
+export function imageFormatFromDataUrl(dataUrl) {
   const match = /^data:image\/(\w+);base64,/.exec(dataUrl);
   if (!match) return "PNG";
   const type = match[1].toUpperCase();
@@ -59,6 +59,8 @@ function emptyNote(doc, marginX, y, text) {
  * you have. Missing sections are simply skipped, not shown as empty.
  */
 export async function generateReportPdf({
+  profitLoss, // computeProfitAndLoss result | null (owner/manager only)
+  accuracyNotes, // [{ tone, text }] from describeAccuracy — printed verbatim so PDF and screen never word a caveat differently
   storeName,
   storeLogoUrl,
   periodLabel,
@@ -115,6 +117,51 @@ export async function generateReportPdf({
   });
 
   let y = doc.lastAutoTable.finalY + 12;
+
+  // --- Profit & Loss ---
+  if (profitLoss) {
+    const m = (n) => `${Number(n).toLocaleString()} ${currency}`;
+    y = ensureSpace(doc, y, 60);
+    y = sectionHeader(doc, marginX, y, "Profit & Loss");
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["", "Amount"]],
+      body: [
+        ["Revenue (after discounts)", m(profitLoss.revenue)],
+        ["Cost of goods", `- ${m(profitLoss.cogs)}`],
+        ["Gross profit", `${m(profitLoss.grossProfit)}${profitLoss.grossMarginPct !== null ? ` (${profitLoss.grossMarginPct}%)` : ""}`],
+        ["Expenses", `- ${m(profitLoss.expenses)}`],
+        ["Net profit", `${m(profitLoss.netProfit)}${profitLoss.netMarginPct !== null ? ` (${profitLoss.netMarginPct}%)` : ""}`],
+      ],
+      headStyles: { fillColor: [16, 20, 27], textColor: 255 },
+      margin: { left: marginX, right: marginX },
+    });
+    y = doc.lastAutoTable.finalY + 6;
+
+    if (profitLoss.expensesByCategory.length) {
+      autoTable(doc, {
+        startY: y,
+        head: [["Expenses by category", "Count", "Total"]],
+        body: profitLoss.expensesByCategory.map((c) => [c.category, c.count, m(c.total)]),
+        headStyles: { fillColor: [16, 20, 27], textColor: 255 },
+        margin: { left: marginX, right: marginX },
+      });
+      y = doc.lastAutoTable.finalY + 6;
+    }
+
+    if (accuracyNotes?.length) {
+      doc.setFontSize(10);
+      doc.setTextColor(110, 120, 135);
+      for (const note of accuracyNotes) {
+        const lines = doc.splitTextToSize(`${note.tone === "warn" ? "Note: " : "Info: "}${note.text}`, doc.internal.pageSize.getWidth() - marginX * 2);
+        y = ensureSpace(doc, y, lines.length * 5 + 4);
+        doc.text(lines, marginX, y);
+        y += lines.length * 5 + 3;
+      }
+      doc.setTextColor(20, 24, 32);
+    }
+    y += 6;
+  }
 
   // --- Top products ---
   y = ensureSpace(doc, y, 30);

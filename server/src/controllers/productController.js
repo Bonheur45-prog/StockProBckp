@@ -4,6 +4,7 @@ import Store from "../models/Store.js";
 import { uploadBufferToCloudinary } from "../config/cloudinary.js";
 import { logAction } from "../utils/audit.js";
 import { assertNoDuplicateCodes } from "../utils/productCodes.js";
+import { recordPriceChanges } from "../utils/priceHistory.js";
 
 // GET /api/products?search=&category=&lowStock=true&page=&limit=
 export const listProducts = asyncHandler(async (req, res) => {
@@ -86,6 +87,15 @@ export const createProduct = asyncHandler(async (req, res) => {
     after: product.toObject(),
   });
 
+  // Price history: record the prices the product started with. The product
+  // is already saved, so a failure here must not fail the request — it is
+  // logged loudly instead (same stance as logAction above).
+  try {
+    await recordPriceChanges({ storeId: req.user.storeId, product, after: product.toObject(), userId: req.user.id, kind: "created" });
+  } catch (err) {
+    console.error("[priceHistory] failed to record initial prices:", err.message);
+  }
+
   res.status(201).json(product);
 });
 
@@ -118,6 +128,15 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
   product.updatedBy = req.user.id;
   await product.save();
+
+  // Price history: compares the pre-edit snapshot (`before`) with the saved
+  // product and writes a row ONLY for a costPrice/sellPrice that actually
+  // changed — renaming a product or re-saving the same price logs nothing.
+  try {
+    await recordPriceChanges({ storeId: req.user.storeId, product, before, after: product.toObject(), userId: req.user.id, kind: "change" });
+  } catch (err) {
+    console.error("[priceHistory] failed to record price change:", err.message);
+  }
 
   await logAction({
     storeId: req.user.storeId,

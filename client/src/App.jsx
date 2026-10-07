@@ -22,6 +22,7 @@ import Customers from "./pages/Customers/Customers.jsx";
 import Staff from "./pages/Staff/Staff.jsx";
 import Settings from "./pages/Settings/Settings.jsx";
 import Suppliers from "./pages/Suppliers/Suppliers.jsx";
+import Expenses from "./pages/Expenses/Expenses.jsx";
 import PurchaseOrders from "./pages/PurchaseOrders/PurchaseOrders.jsx";
 import SyncIssues from "./pages/SyncIssues/SyncIssues.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="customers" element={<Customers />} />
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="purchase-orders" element={<PurchaseOrders />} />
+        <Route path="expenses" element={<Expenses />} />
         <Route path="staff" element={<Staff />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />

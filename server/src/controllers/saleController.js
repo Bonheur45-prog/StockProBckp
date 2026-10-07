@@ -76,7 +76,16 @@ export async function performSaleCreation(storeId, userId, payload, userRole) {
       const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
       subtotal += lineTotal;
 
-      saleItems.push({ productId: product._id, name: product.name, unitPrice, quantity, lineTotal, isCustom: false });
+      // Cost snapshot. An offline sale carries the cost the DEVICE knew at
+      // the moment of sale — more accurate than the cost on the server by
+      // the time the sale syncs, so a valid client value wins. Anything
+      // missing/invalid (REST sales, older app versions) falls back to the
+      // product's cost right now. A device could in principle send a made-up
+      // cost; that only skews its own store's P&L, which we accept.
+      const clientCost = item.unitCost === undefined || item.unitCost === null || item.unitCost === "" ? NaN : Number(item.unitCost);
+      const unitCost = Number.isFinite(clientCost) && clientCost >= 0 ? clientCost : Number(product.costPrice) || 0;
+
+      saleItems.push({ productId: product._id, name: product.name, unitPrice, unitCost, quantity, lineTotal, isCustom: false });
 
       product.quantityOnHand -= quantity;
       product.updatedBy = userId;

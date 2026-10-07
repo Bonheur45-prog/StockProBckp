@@ -45,6 +45,22 @@ db.version(3).stores({
   meta: "key",
 });
 
+// v4: adds expenses (owner/manager only) and priceHistory (append-only log
+// of every cost/sell price a product has had). Both are "finance data":
+// the server never sends them to cashiers (see syncController.pull).
+db.version(4).stores({
+  products: "clientId, id, storeId, name, sku, barcode, category, dirty, isDeleted, updatedAt",
+  sales: "clientId, id, storeId, dirty, occurredAt, status",
+  stockMovements: "clientId, id, storeId, productId, dirty, createdAt",
+  creditPayments: "clientId, id, storeId, customerName, customerPhone, dirty, createdAt",
+  suppliers: "clientId, id, storeId, name, dirty, isDeleted",
+  purchaseOrders: "clientId, id, storeId, status, dirty, createdAt",
+  poReceipts: "clientId, purchaseOrderId, dirty, createdAt",
+  expenses: "clientId, id, storeId, date, category, dirty, isDeleted",
+  priceHistory: "clientId, id, storeId, productId, productClientId, changedAt, dirty",
+  meta: "key",
+});
+
 export async function getMeta(key, fallback = null) {
   const row = await db.meta.get(key);
   return row ? row.value : fallback;
@@ -63,6 +79,8 @@ export async function clearLocalData() {
     db.suppliers.clear(),
     db.purchaseOrders.clear(),
     db.poReceipts.clear(),
+    db.expenses.clear(),
+    db.priceHistory.clear(),
     db.meta.clear(),
   ]);
 }

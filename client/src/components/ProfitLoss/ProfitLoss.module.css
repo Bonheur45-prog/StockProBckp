@@ -1,0 +1,38 @@
+.card { margin-bottom: 20px; }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.title { font-size: 16px; font-weight: 700; margin: 0; }
+.range { font-size: 12.5px; color: var(--muted-on-paper); }
+
+.equation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.cell { border: 1px solid var(--paper-100); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.cellLabel { font-size: 11.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted-on-paper); }
+.cellValue { font-size: 20px; font-weight: 800; margin-top: 4px; overflow-wrap: anywhere; }
+.cellSub { font-size: 12px; color: var(--muted-on-paper); margin-top: 2px; }
+.net[data-tone="profit"] { border-color: #2f9463; background: rgba(47, 148, 99, 0.07); }
+.net[data-tone="profit"] .cellValue { color: #2f9463; }
+.net[data-tone="loss"] { border-color: #b4452f; background: rgba(180, 69, 47, 0.07); }
+.net[data-tone="loss"] .cellValue { color: #b4452f; }
+
+.source { margin: 12px 0 0; font-size: 12.5px; color: var(--muted-on-paper); }
+.notes { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.note { font-size: 12.5px; line-height: 1.45; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--paper-100); }
+.note[data-tone="warn"] { background: rgba(217, 142, 43, 0.1); border-color: rgba(217, 142, 43, 0.45); }
+.note[data-tone="info"] { background: rgba(60, 127, 201, 0.07); border-color: rgba(60, 127, 201, 0.3); }
+.exact { font-size: 12.5px; color: #2f9463; margin: 10px 0 0; }
+
+.chartPanel { margin-top: 16px; background: #0f1b2d; border-radius: 14px; padding: 14px 10px 8px; color: #cfd8e6; }
+.legend { display: flex; gap: 16px; padding: 0 8px 6px; font-size: 12.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.chartEmpty { padding: 40px 0; text-align: center; font-size: 13px; color: #8da0b8; }
+.tooltip { background: #16263d; border: 1px solid #2a4060; border-radius: 10px; padding: 9px 12px; font-size: 12.5px; color: #e8eef8; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
+.tooltipDate { font-weight: 700; margin-bottom: 5px; }
+.tooltipRow { display: flex; align-items: center; gap: 7px; }
+.tooltipDot { width: 8px; height: 8px; border-radius: 50%; }
+.tooltipValue { margin-left: auto; padding-left: 14px; font-weight: 700; }
+
+.cats { margin-top: 16px; }
+.catsTitle { font-size: 12.5px; font-weight: 700; color: var(--muted-on-paper); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+.catRow { display: flex; justify-content: space-between; font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid var(--paper-100); }
+
+@media (max-width: 860px) { .equation { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

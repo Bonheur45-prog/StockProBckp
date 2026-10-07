@@ -10,12 +10,13 @@ const NEW_CATEGORY_VALUE = "__new__";
  * actually creates the category — there's no separate category table,
  * a category exists the moment a product uses it.
  */
-export default function CategorySelect({ value, onChange }) {
+export default function CategorySelect({ value, onChange, loadCategories = listCategories }) {
   const [categories, setCategories] = useState([]);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    listCategories().then(setCategories);
+    loadCategories().then(setCategories);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // If we're editing a product whose category isn't in the known list yet

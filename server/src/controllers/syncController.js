@@ -6,6 +6,11 @@ import StockMovement from "../models/StockMovement.js";
 import CreditPayment from "../models/CreditPayment.js";
 import Supplier from "../models/Supplier.js";
 import PurchaseOrder from "../models/PurchaseOrder.js";
+import Expense from "../models/Expense.js";
+import PriceHistory, { PRICE_FIELDS, PRICE_HISTORY_KINDS } from "../models/PriceHistory.js";
+import { resolveProductRefs } from "../utils/productRef.js";
+import { toPrice } from "../utils/priceHistory.js";
+import { performUpsertExpense } from "./expenseController.js";
 import { performSaleCreation } from "./saleController.js";
 import { applyStockMovement } from "./stockController.js";
 import { performRecordPayment } from "./creditController.js";
@@ -61,16 +66,31 @@ export const pull = asyncHandler(async (req, res) => {
   const storeId = req.user.storeId;
   const serverTime = new Date();
 
-  const [products, sales, stockMovements, creditPayments, suppliers, purchaseOrders] = await Promise.all([
+  // Finance data (expenses + price history) is owner/manager only — cashiers
+  // never receive it. It has its OWN cursor (financeSince) instead of sharing
+  // `since`: a cashier promoted to manager has an old `since` but has never
+  // been sent any expenses, so on the shared cursor they would silently miss
+  // everything recorded before the promotion. A client that has never pulled
+  // finance data omits the param and gets it all.
+  const canSeeFinance = req.user.role === "owner" || req.user.role === "manager";
+  let financeSince = req.query.financeSince ? new Date(req.query.financeSince) : new Date(0);
+  if (Number.isNaN(financeSince.getTime())) financeSince = new Date(0);
+
+  const [products, sales, stockMovements, creditPayments, suppliers, purchaseOrders, expenses, priceHistory] = await Promise.all([
     Product.find({ storeId, updatedAt: { $gte: since } }),
     Sale.find({ storeId, updatedAt: { $gte: since } }),
     StockMovement.find({ storeId, updatedAt: { $gte: since } }),
     CreditPayment.find({ storeId, updatedAt: { $gte: since } }),
     Supplier.find({ storeId, updatedAt: { $gte: since } }),
     PurchaseOrder.find({ storeId, updatedAt: { $gte: since } }),
+    canSeeFinance ? Expense.find({ storeId, updatedAt: { $gte: financeSince } }) : [],
+    canSeeFinance ? PriceHistory.find({ storeId, updatedAt: { $gte: financeSince } }) : [],
   ]);
 
-  res.json({ serverTime, products, sales, stockMovements, creditPayments, suppliers, purchaseOrders });
+  res.json({
+    serverTime, products, sales, stockMovements, creditPayments, suppliers, purchaseOrders,
+    expenses, priceHistory, financeIncluded: canSeeFinance,
+  });
 });
 
 /**
@@ -104,11 +124,14 @@ export const push = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const userRole = req.user.role;
   const canManageCatalog = userRole === "owner" || userRole === "manager";
-  const { products = [], sales = [], stockMovements = [], creditPayments = [], suppliers = [], purchaseOrders = [], poReceipts = [] } = req.body;
+  const {
+    products = [], sales = [], stockMovements = [], creditPayments = [], suppliers = [], purchaseOrders = [], poReceipts = [],
+    expenses = [], priceHistory = [],
+  } = req.body;
 
   const results = {
     products: [], sales: [], stockMovements: [], creditPayments: [],
-    suppliers: [], purchaseOrders: [], poReceipts: [], errors: [],
+    suppliers: [], purchaseOrders: [], poReceipts: [], expenses: [], priceHistory: [], errors: [],
   };
 
   // --- Products (create or last-write-wins update) ---
@@ -160,6 +183,62 @@ export const push = asyncHandler(async (req, res) => {
       }
     } catch (err) {
       results.errors.push({ type: "product", clientId: p.clientId, message: safeSyncErrorMessage(err, "product") });
+    }
+  }
+
+  // --- Price history (rows a device wrote when it edited a product's price) ---
+  // Runs AFTER products so a product created in the same push already exists.
+  // Append-only and idempotent on clientId. changedAt is the time the edit
+  // happened on the device (it may sync hours later) — except it is never
+  // allowed to sit in the future, which would let a wrong device clock
+  // permanently shadow every later real price.
+  for (const h of priceHistory) {
+    try {
+      if (!canManageCatalog) throw Object.assign(new Error("role does not permit price history"), { statusCode: 403 });
+      if (!h.clientId) throw Object.assign(new Error("price history entry missing clientId"), { statusCode: 400 });
+
+      const already = await PriceHistory.findOne({ storeId, clientId: h.clientId });
+      if (already) {
+        results.priceHistory.push(already);
+        continue;
+      }
+
+      if (!PRICE_FIELDS.includes(h.field)) throw Object.assign(new Error("Invalid price field"), { statusCode: 400 });
+      const newValue = toPrice(h.newValue);
+      if (newValue === null) throw Object.assign(new Error("Invalid price value"), { statusCode: 400 });
+      const oldValue = toPrice(h.oldValue); // null when absent/invalid — fine for created/baseline rows
+
+      const productMap = await resolveProductRefs(storeId, [h.productId, h.productClientId]);
+      const product = productMap.get(h.productId) || productMap.get(h.productClientId);
+      if (!product) throw Object.assign(new Error("The product for this price change wasn't found"), { statusCode: 404 });
+
+      const now = new Date();
+      let changedAt = h.changedAt ? new Date(h.changedAt) : now;
+      if (Number.isNaN(changedAt.getTime()) || changedAt.getTime() > now.getTime() + 5 * 60 * 1000) changedAt = now;
+
+      const created = await PriceHistory.create({
+        storeId,
+        productId: product._id,
+        productClientId: product.clientId || h.productClientId,
+        field: h.field,
+        oldValue,
+        newValue,
+        kind: PRICE_HISTORY_KINDS.includes(h.kind) ? h.kind : "change",
+        changedAt,
+        changedBy: userId,
+        clientId: h.clientId,
+      });
+      results.priceHistory.push(created);
+    } catch (err) {
+      if (err.code === 11000) {
+        // Lost a race with a concurrent identical push — the row exists, which is the goal.
+        const existingRow = await PriceHistory.findOne({ storeId, clientId: h.clientId });
+        if (existingRow) {
+          results.priceHistory.push(existingRow);
+          continue;
+        }
+      }
+      results.errors.push({ type: "priceHistory", clientId: h.clientId, message: safeSyncErrorMessage(err, "priceHistory") });
     }
   }
 
@@ -234,6 +313,19 @@ export const push = asyncHandler(async (req, res) => {
     }
   }
 
+  // --- Expenses (create, or owner-only edit/delete) ---
+  // The role rules live INSIDE performUpsertExpense, not here, so this path
+  // can never be looser than the REST route (the lesson of HANDOFF.md Bug #1).
+  for (const e of expenses) {
+    try {
+      if (!e.clientId) throw Object.assign(new Error("expense missing clientId"), { statusCode: 400 });
+      const expense = await performUpsertExpense(storeId, userId, userRole, e);
+      results.expenses.push(expense);
+    } catch (err) {
+      results.errors.push({ type: "expense", clientId: e.clientId, message: safeSyncErrorMessage(err, "expense") });
+    }
+  }
+
   // --- Purchase orders created offline ---
   for (const po of purchaseOrders) {
     try {
@@ -272,8 +364,16 @@ export const uploadQueuedImage = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("No image file provided");
   }
+  // ?folder=receipts stores an expense receipt photo (owner/manager only,
+  // like the expense itself). Anything else — including no param — keeps the
+  // original behaviour: a product photo. Whitelisted, never interpolated raw.
+  const folder = req.query.folder === "receipts" ? "receipts" : "products";
+  if (folder === "receipts" && req.user.role !== "owner" && req.user.role !== "manager") {
+    res.status(403);
+    throw new Error("You don't have permission to do that");
+  }
   const result = await uploadBufferToCloudinary(req.file.buffer, {
-    folder: `hardware-saas/${req.user.storeId}/products`,
+    folder: `hardware-saas/${req.user.storeId}/${folder}`,
   });
   res.json({ imageUrl: result.secure_url, imagePublicId: result.public_id });
 });

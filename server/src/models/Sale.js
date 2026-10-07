@@ -10,6 +10,14 @@ const saleItemSchema = new mongoose.Schema(
     unitPrice: { type: Number, required: true },
     quantity: { type: Number, required: true, min: 0.001 },
     lineTotal: { type: Number, required: true },
+    // What one unit COST the store at the moment of sale (snapshot of the
+    // product's costPrice then) — same idea as PurchaseOrder's unitCost.
+    // This is the authoritative source for the sale's margin: it is never
+    // recomputed. Intentionally optional with NO default: absent on custom
+    // lines (no catalog product, cost unknown) and on every sale recorded
+    // before this field existed, so Profit & Loss can tell "cost was 0"
+    // apart from "cost was never recorded".
+    unitCost: { type: Number, min: 0 },
     isCustom: { type: Boolean, default: false },
   },
   { _id: false }

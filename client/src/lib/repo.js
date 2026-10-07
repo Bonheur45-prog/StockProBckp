@@ -2,6 +2,19 @@ import { db } from "./db.js";
 import { uuid } from "./uuid.js";
 import { runSync } from "./sync.js";
 import { api } from "./api.js";
+import {
+  computeProfitAndLoss,
+  summarizeExpenses,
+  buildIncomeExpenseSeries,
+  chooseGranularity,
+  buildHistoryIndex,
+  historyRowsForProduct,
+  priceAtFromRows,
+  toMoney,
+} from "./profitLoss.js";
+import { findDueRecurring } from "./recurring.js";
+import { dateInputToIso, todayDateInput } from "./dates.js";
+import { EXPENSE_PAYMENT_METHODS, EXPENSE_FREQUENCIES } from "./expenseMeta.js";
 
 function currentUser() {
   const raw = localStorage.getItem("user");
@@ -114,6 +127,45 @@ async function assertNoDuplicateCodesLocally(storeId, { barcode, sku }, excludeC
   }
 }
 
+const PRICE_FIELDS = ["costPrice", "sellPrice"];
+
+/** Prices are always stored as finite numbers >= 0 (a form hands us strings, "" for blank). */
+function asPrice(value) {
+  return toMoney(value) ?? 0;
+}
+
+/**
+ * One price-history row per price field that ACTUALLY changed between two
+ * versions of a product (compared as numbers, so "150" -> 150 is not a
+ * change). kind "created" instead records both starting prices. Rows are
+ * written in the same Dexie transaction as the product edit, so a price can
+ * never change without its history entry (or the reverse).
+ */
+function priceHistoryEntries({ product, before, kind, user, at }) {
+  const entries = [];
+  for (const field of PRICE_FIELDS) {
+    const newValue = asPrice(product[field]);
+    const oldValue = kind === "created" ? null : asPrice(before?.[field]);
+    if (kind !== "created" && oldValue === newValue) continue;
+    entries.push({
+      clientId: uuid(),
+      storeId: product.storeId,
+      productId: product.id || product.clientId,
+      productClientId: product.clientId,
+      field,
+      oldValue,
+      newValue,
+      kind,
+      changedAt: at,
+      changedBy: user?.id,
+      createdAt: at,
+      updatedAt: at,
+      dirty: 1,
+    });
+  }
+  return entries;
+}
+
 export async function createProduct(input) {
   const user = currentUser();
   await assertNoDuplicateCodesLocally(user.storeId, { barcode: input.barcode, sku: input.sku }, null);
@@ -135,7 +187,11 @@ export async function createProduct(input) {
     updatedAt: nowIso(),
     dirty: 1,
   };
-  await db.products.put(record);
+  await db.transaction("rw", db.products, db.priceHistory, async () => {
+    await db.products.put(record);
+    // Price history starts here: the prices this product was created with.
+    await db.priceHistory.bulkPut(priceHistoryEntries({ product: record, kind: "created", user, at: record.updatedAt }));
+  });
   runSync();
   return record;
 }
@@ -143,9 +199,27 @@ export async function createProduct(input) {
 export async function updateProduct(clientId, changes) {
   const existing = await db.products.get(clientId);
   if (!existing || existing.storeId !== currentStoreId()) throw new Error("Product not found locally");
-  const updated = { ...existing, ...changes, updatedAt: nowIso(), dirty: 1 };
+
+  // A product form hands prices over as strings ("150", or "" when cleared).
+  // Normalise to real numbers BEFORE storing: a string cost would otherwise
+  // sit in the local cache until the next pull, and anything that adds costs
+  // (profit & loss) would concatenate instead of summing.
+  const normalized = { ...changes };
+  for (const field of PRICE_FIELDS) {
+    if (normalized[field] !== undefined) normalized[field] = asPrice(normalized[field]);
+  }
+
+  const at = nowIso();
+  const updated = { ...existing, ...normalized, updatedAt: at, dirty: 1 };
   await assertNoDuplicateCodesLocally(updated.storeId, { barcode: updated.barcode, sku: updated.sku }, clientId);
-  await db.products.put(updated);
+
+  // Price history: only rows for a price that really changed (a rename or a
+  // stock tweak yields none), written atomically with the product itself.
+  const entries = priceHistoryEntries({ product: updated, before: existing, kind: "change", user: currentUser(), at });
+  await db.transaction("rw", db.products, db.priceHistory, async () => {
+    await db.products.put(updated);
+    if (entries.length) await db.priceHistory.bulkPut(entries);
+  });
   runSync();
   return updated;
 }
@@ -283,7 +357,10 @@ export async function createSale({ items, discount = 0, paymentMethod = "cash", 
       const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
       subtotal += lineTotal;
 
-      saleItems.push({ productId: product.id || product.clientId, name: product.name, unitPrice, quantity, lineTotal, isCustom: false });
+      // Cost snapshot: what ONE unit cost the store at this very moment.
+      // Recorded on the line so this sale's margin never has to be looked up
+      // (or guessed) later, even if the product's cost changes tomorrow.
+      saleItems.push({ productId: product.id || product.clientId, name: product.name, unitPrice, unitCost: asPrice(product.costPrice), quantity, lineTotal, isCustom: false });
 
       const quantityAfter = product.quantityOnHand - quantity;
       // dirty preserved, not forced — see writeMovementAndAdjustStock's
@@ -922,4 +999,311 @@ export async function exportFullBackup() {
     suppliers,
     purchaseOrders,
   };
+}
+
+// ---------- Expenses (owner/manager only) ----------
+
+/**
+ * Roles mirror the server (expenseController): owner + manager can view and
+ * ADD expenses; only the owner can EDIT or DELETE one. These local checks are
+ * belt-and-suspenders — the server enforces the same rules again on sync —
+ * and they also stop a cashier on a shared device from reading expenses that
+ * a manager's earlier session left in the local cache.
+ */
+function canViewFinance() {
+  const role = currentUser()?.role;
+  return role === "owner" || role === "manager";
+}
+
+function assertCanLogExpenses() {
+  if (!canViewFinance()) throw new Error("Only an owner or manager can record expenses");
+}
+
+function assertCanEditExpenses() {
+  if (currentUser()?.role !== "owner") throw new Error("Only the owner can edit or delete an expense");
+}
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+/** Accepts the picker's "YYYY-MM-DD" (stored at local noon) or any parseable date/ISO. */
+function normalizeExpenseDate(value) {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const iso = dateInputToIso(value);
+    if (!iso) throw new Error("That date doesn't exist — please check it");
+    return iso;
+  }
+  const d = new Date(value);
+  if (!value || Number.isNaN(d.getTime())) throw new Error("Pick the date of the expense");
+  return d.toISOString();
+}
+
+/** Validates the user-editable fields of an expense and returns them normalised. Throws a readable message. */
+function normalizeExpenseFields(f) {
+  const amount = Number(f.amount);
+  if (f.amount === "" || f.amount === null || f.amount === undefined || !Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Enter an amount greater than 0");
+  }
+  const date = normalizeExpenseDate(f.date);
+  const year = new Date(date).getFullYear();
+  if (year < 2000 || year > 2100) throw new Error("That date looks wrong — please check the year");
+
+  const paymentMethod = f.paymentMethod || "cash";
+  if (!EXPENSE_PAYMENT_METHODS.includes(paymentMethod)) throw new Error("Choose a payment method");
+
+  const isRecurring = !!f.isRecurring;
+  if (isRecurring && !EXPENSE_FREQUENCIES.includes(f.frequency)) throw new Error("Choose monthly or weekly for a recurring expense");
+
+  return {
+    category: String(f.category ?? "").trim(),
+    amount: round2(amount),
+    date,
+    description: String(f.description ?? "").trim(),
+    paymentMethod,
+    isRecurring,
+    frequency: isRecurring ? f.frequency : null,
+  };
+}
+
+/** Looks a supplier up by clientId or server id, returning the link + a name snapshot (survives renames/removal). */
+async function supplierSnapshot(ref) {
+  if (!ref) return { supplierId: null, supplierName: "" };
+  const storeId = currentStoreId();
+  const all = await db.suppliers.filter((s) => s.storeId === storeId).toArray();
+  const supplier = all.find((s) => s.clientId === ref || s.id === ref);
+  return supplier ? { supplierId: supplier.id || supplier.clientId, supplierName: supplier.name || "" } : { supplierId: null, supplierName: "" };
+}
+
+async function loadLiveExpenses() {
+  if (!canViewFinance()) return [];
+  const storeId = currentStoreId();
+  return db.expenses.filter((e) => !e.isDeleted && e.storeId === storeId).toArray();
+}
+
+/**
+ * from: inclusive, to: EXCLUSIVE (Date or ISO) — the same convention as
+ * getPeriodRange. category "__none__" selects expenses with no category.
+ */
+export async function listExpenses({ search, category, from, to } = {}) {
+  let items = await loadLiveExpenses();
+  if (category === "__none__") items = items.filter((e) => !(e.category || "").trim());
+  else if (category) items = items.filter((e) => e.category === category);
+  if (from) items = items.filter((e) => new Date(e.date) >= new Date(from));
+  if (to) items = items.filter((e) => new Date(e.date) < new Date(to));
+  if (search) {
+    const q = search.toLowerCase();
+    items = items.filter(
+      (e) =>
+        e.description?.toLowerCase().includes(q) ||
+        e.category?.toLowerCase().includes(q) ||
+        e.supplierName?.toLowerCase().includes(q)
+    );
+  }
+  return items.sort((a, b) => new Date(b.date) - new Date(a.date) || new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+}
+
+/** Distinct expense categories in use — same "exists once used" idea as product categories. */
+export async function listExpenseCategories() {
+  const items = await loadLiveExpenses();
+  return [...new Set(items.map((e) => (e.category || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+export async function createExpense(input) {
+  assertCanLogExpenses();
+  const user = currentUser();
+  const fields = normalizeExpenseFields(input);
+  const supplier = await supplierSnapshot(input.supplierId);
+  const clientId = uuid();
+  const at = nowIso();
+  const record = {
+    clientId,
+    storeId: user.storeId,
+    ...fields,
+    ...supplier,
+    receiptUrl: input.receiptUrl || null,
+    // A recurring expense starts (or, when logged from "Log this period's",
+    // continues) a series; later entries copy this id.
+    recurringSeriesId: fields.isRecurring ? input.recurringSeriesId || clientId : input.recurringSeriesId || null,
+    isDeleted: false,
+    createdAt: at,
+    updatedAt: at,
+    dirty: 1,
+  };
+  await db.expenses.put(record);
+  runSync();
+  return record;
+}
+
+export async function updateExpense(clientId, changes) {
+  assertCanEditExpenses();
+  const existing = await db.expenses.get(clientId);
+  if (!existing || existing.storeId !== currentStoreId() || existing.isDeleted) throw new Error("Expense not found locally");
+
+  const fields = normalizeExpenseFields({ ...existing, ...changes });
+  const supplier =
+    changes.supplierId !== undefined
+      ? await supplierSnapshot(changes.supplierId)
+      : { supplierId: existing.supplierId ?? null, supplierName: existing.supplierName || "" };
+
+  const updated = {
+    ...existing,
+    ...fields,
+    ...supplier,
+    receiptUrl: changes.receiptUrl !== undefined ? changes.receiptUrl || null : existing.receiptUrl ?? null,
+    recurringSeriesId: fields.isRecurring ? existing.recurringSeriesId || clientId : existing.recurringSeriesId ?? null,
+    syncError: undefined,
+    updatedAt: nowIso(),
+    dirty: 1,
+  };
+  await db.expenses.put(updated);
+  runSync();
+  return updated;
+}
+
+export async function deleteExpense(clientId) {
+  assertCanEditExpenses();
+  const existing = await db.expenses.get(clientId);
+  if (!existing || existing.storeId !== currentStoreId()) throw new Error("Expense not found locally");
+  await db.expenses.put({ ...existing, isDeleted: true, syncError: undefined, updatedAt: nowIso(), dirty: 1 });
+  runSync();
+}
+
+/** Totals for the Expenses page's summary cards, with % change vs the previous equivalent period. */
+export async function getExpenseSummary(period = "month", offset = 0, customRange = null) {
+  const expenses = await loadLiveExpenses();
+  const range = getPeriodRange(period, offset, customRange);
+  const current = summarizeExpenses(expenses, range);
+  if (customRange) return { ...current, change: null, range };
+  const previous = summarizeExpenses(expenses, getPreviousRange(range, period, offset));
+  return { ...current, change: percentChange(current.total, previous.total), range };
+}
+
+// ---------- Recurring expenses (manual "log this period's") ----------
+
+/** Recurring series with nothing logged yet for the current month/week. See recurring.js. */
+export async function listDueRecurringExpenses(now = new Date()) {
+  return findDueRecurring(await loadLiveExpenses(), now);
+}
+
+/**
+ * Creates one expense per CONFIRMED series, dated today, copying category,
+ * description, payment method and supplier from the series' latest entry.
+ * `items`: [{ seriesId, amount }] — the amount the owner/manager reviewed
+ * (rent can change; that's why this is a review step, not a timer).
+ *
+ * Re-checks what is due at the moment of the call rather than trusting the
+ * list the user was looking at, so a double-tap or a second device can never
+ * log the same series twice for one period: anything no longer due is
+ * skipped and counted, not created.
+ */
+export async function logRecurringExpenses(items, now = new Date()) {
+  assertCanLogExpenses();
+  const user = currentUser();
+  const dueBySeries = new Map((await listDueRecurringExpenses(now)).map((d) => [d.seriesId, d]));
+
+  // Validate everything first so a bad amount on the 3rd row can't leave 2 created.
+  const plan = [];
+  let skipped = 0;
+  for (const item of items) {
+    const due = dueBySeries.get(item.seriesId);
+    if (!due) {
+      skipped += 1;
+      continue;
+    }
+    const amount = Number(item.amount ?? due.template.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error(`Enter an amount greater than 0 for ${due.template.category || "this expense"}`);
+    }
+    plan.push({ due, amount: round2(amount) });
+    dueBySeries.delete(item.seriesId); // a series listed twice is logged once
+  }
+
+  const at = nowIso();
+  const date = dateInputToIso(todayDateInput()); // today at local noon
+  const records = plan.map(({ due, amount }) => {
+    const t = due.template;
+    return {
+      clientId: uuid(),
+      storeId: user.storeId,
+      category: t.category || "",
+      amount,
+      date,
+      description: t.description || "",
+      paymentMethod: t.paymentMethod || "cash",
+      supplierId: t.supplierId ?? null,
+      supplierName: t.supplierName || "",
+      receiptUrl: null, // a receipt belongs to the one payment it documents
+      isRecurring: true,
+      frequency: t.frequency,
+      recurringSeriesId: due.seriesId,
+      isDeleted: false,
+      createdAt: at,
+      updatedAt: at,
+      dirty: 1,
+    };
+  });
+
+  if (records.length) {
+    await db.transaction("rw", db.expenses, async () => {
+      await db.expenses.bulkPut(records);
+    });
+    runSync();
+  }
+  return { created: records.length, skipped };
+}
+
+// ---------- Price history (read side) ----------
+
+async function loadPriceHistory() {
+  if (!canViewFinance()) return [];
+  const storeId = currentStoreId();
+  return db.priceHistory.filter((h) => h.storeId === storeId).toArray();
+}
+
+/** Every recorded price change for one product (clientId or server id), newest first. */
+export async function listPriceHistoryForProduct(productRef) {
+  const product = await findLocalProductByAnyId(productRef);
+  if (!product) return [];
+  const rows = historyRowsForProduct(buildHistoryIndex(await loadPriceHistory()), product);
+  return rows.sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt));
+}
+
+/**
+ * "What was this product's cost (or sell price) at time X?"
+ * value === null means history can't answer (no row that early — tracking
+ * hadn't started for this product yet); the caller must say so and fall back,
+ * not treat it as zero.
+ */
+export async function getProductPriceAt(productRef, field, at) {
+  const rows = await listPriceHistoryForProduct(productRef);
+  const value = priceAtFromRows(rows, field, at);
+  return { value, source: value === null ? "none" : "history" };
+}
+
+// ---------- Profit & Loss ----------
+
+async function loadPnlInputs() {
+  if (!canViewFinance()) throw new Error("Only an owner or manager can view profit and loss");
+  const storeId = currentStoreId();
+  const [sales, expenses, products, history] = await Promise.all([
+    listSales(),
+    loadLiveExpenses(),
+    // Deleted products included on purpose: past sales of a since-removed product still need their cost.
+    db.products.filter((p) => p.storeId === storeId).toArray(),
+    loadPriceHistory(),
+  ]);
+  return { sales, expenses, products, history };
+}
+
+/** Revenue − COGS − Expenses = Net Profit for the period (or custom range). See profitLoss.js for how COGS is sourced and labelled. */
+export async function getProfitAndLoss(period = "month", offset = 0, customRange = null) {
+  const inputs = await loadPnlInputs();
+  return computeProfitAndLoss({ ...inputs, range: getPeriodRange(period, offset, customRange) });
+}
+
+/** Income vs expenses per hour/day/month across the period — powers the P&L chart. Honors the custom range. */
+export async function getIncomeExpenseSeries(period = "month", offset = 0, customRange = null) {
+  const { sales, expenses } = await loadPnlInputs();
+  const range = getPeriodRange(period, offset, customRange);
+  const granularity = chooseGranularity(period, range, !!customRange);
+  return buildIncomeExpenseSeries({ sales, expenses, range, granularity });
 }

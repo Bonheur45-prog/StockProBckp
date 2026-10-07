@@ -4,10 +4,12 @@ import { Activity, WifiOff, FileDown } from "lucide-react";
 import { Card, Badge, Button, Input } from "../../components/ui/ui.jsx";
 import Pagination from "../../components/Pagination/Pagination.jsx";
 import SalesChartCard from "../../components/SalesChartCard/SalesChartCard.jsx";
-import { getTopProducts, listSales, listProducts, getStatForPeriod, getSalesSeries, listCustomerBalances, effectiveLowStockThreshold } from "../../lib/repo.js";
+import ProfitLossSection from "../../components/ProfitLoss/ProfitLossSection.jsx";
+import { getTopProducts, listSales, listProducts, getStatForPeriod, getSalesSeries, listCustomerBalances, effectiveLowStockThreshold, getProfitAndLoss } from "../../lib/repo.js";
 import { usePagination } from "../../hooks/usePagination.js";
 import { usePeriodNavigator } from "../../hooks/usePeriodNavigator.js";
 import { api } from "../../lib/api.js";
+import { describeAccuracy } from "../../lib/profitLoss.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import styles from "./Reports.module.css";
 
@@ -25,7 +27,10 @@ function lastNDays(n) {
 }
 
 export default function Reports() {
-  const { store } = useAuth();
+  const { store, user } = useAuth();
+  // Profit & Loss exposes costs and expenses, so it is owner/manager only
+  // (the data layer refuses cashiers too — this just avoids rendering it).
+  const canViewFinance = user?.role === "owner" || user?.role === "manager";
   const nav = usePeriodNavigator("month");
 
   // Custom date range — Reports-only, layered on top of the existing
@@ -203,7 +208,22 @@ export default function Reports() {
         .slice(0, 15)
         .map((b) => ({ customerName: b.customerName, balance: b.balance }));
 
+      // P&L goes in the PDF only for roles allowed to see it. If it can't be
+      // computed, say so in the console and leave it out — never fake numbers.
+      let profitLoss = null;
+      let accuracyNotes = [];
+      if (canViewFinance) {
+        try {
+          profitLoss = await getProfitAndLoss(nav.period, nav.offset, customRange);
+          accuracyNotes = describeAccuracy(profitLoss, currency);
+        } catch (err) {
+          console.error("[reports] profit & loss unavailable for PDF:", err);
+        }
+      }
+
       await generateReportPdf({
+        profitLoss,
+        accuracyNotes,
         storeName: store?.name || "Store",
         storeLogoUrl: store?.logoUrl,
         periodLabel: effectiveRangeLabel,
@@ -241,12 +261,16 @@ export default function Reports() {
         <Input type="date" value={rangeDraft.end} onChange={(e) => setRangeDraft((d) => ({ ...d, end: e.target.value }))} />
         <Button variant="ghost" onClick={applyCustomRange}>Apply range</Button>
         {customRange && <Button variant="ghost" onClick={clearCustomRange}>Clear</Button>}
-        {customRange && <span className={styles.muted}>Applies to Top products, Activity trail, and PDF export — not the chart below.</span>}
+        {customRange && <span className={styles.muted}>Applies to Top products, Activity trail, Profit & Loss, and PDF export — not the sales chart below.</span>}
       </div>
 
       <div className={styles.chartRow}>
         <SalesChartCard currency={currency} navigator={nav} />
       </div>
+
+      {canViewFinance && (
+        <ProfitLossSection currency={currency} period={nav.period} offset={nav.offset} customRange={customRange} rangeLabel={effectiveRangeLabel} />
+      )}
 
       <Card className={styles.chartRow}>
         <h3 className={styles.cardTitle}>Sales, last 14 days</h3>

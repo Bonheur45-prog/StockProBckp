@@ -213,3 +213,34 @@
     grid-template-columns: 1fr;
   }
 }
+
+.notice {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  border: 1px solid var(--paper-100);
+}
+
+.notice[data-tone="warn"] {
+  background: rgba(217, 142, 43, 0.1);
+  border-color: rgba(217, 142, 43, 0.45);
+}
+
+.notice[data-tone="error"] {
+  background: rgba(180, 69, 47, 0.08);
+  border-color: rgba(180, 69, 47, 0.45);
+}
+
+.noticeClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: inherit;
+  display: flex;
+}

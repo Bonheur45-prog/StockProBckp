@@ -13,6 +13,8 @@ const TYPE_LABELS = {
   supplier: "Supplier",
   purchaseOrder: "Purchase order",
   poReceipt: "Stock receipt",
+  expense: "Expense",
+  priceHistory: "Price change",
 };
 
 /**
@@ -42,6 +44,10 @@ function summarize(record) {
       return "Stock receipt";
     case "creditPayment":
       return `Payment — ${(record.amount ?? 0).toLocaleString()}`;
+    case "expense":
+      return `${record.category || "Uncategorized"} — ${(Number(record.amount) || 0).toLocaleString()}`;
+    case "priceHistory":
+      return `${record.field === "sellPrice" ? "Sell" : "Cost"} price ${record.oldValue ?? "—"} → ${record.newValue}`;
     default:
       return record.clientId;
   }
