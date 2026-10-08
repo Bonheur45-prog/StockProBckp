@@ -375,5 +375,62 @@ const user = (role) => ({ id: role === "owner" ? OWNER : MANAGER, storeId: STORE
   ok("unknown user -> 401", res401.statusCode === 401);
 }
 
+// ------------------------------------- resolveProductRefs and deleted products
+{
+  const { resolveProductRefs } = await import("../src/utils/productRef.js");
+  const queries = [];
+  Product.find = (q) => {
+    queries.push(q);
+    return { session: async () => [] };
+  };
+  const id = new mongoose.Types.ObjectId().toString();
+
+  await resolveProductRefs(STORE, [id, "client-uuid"]);
+  ok("by default, deleted products are excluded from BOTH lookups (objectId + clientId)", queries.length === 2 && queries.every((q) => JSON.stringify(q.isDeleted) === JSON.stringify({ $ne: true })), JSON.stringify(queries));
+
+  queries.length = 0;
+  await resolveProductRefs(STORE, [id, "client-uuid"], undefined, { includeDeleted: true });
+  ok("includeDeleted:true removes the filter on both lookups", queries.length === 2 && queries.every((q) => !("isDeleted" in q)), JSON.stringify(queries));
+}
+
+// A sale must STILL resolve a deleted product: it records something that already happened.
+{
+  const seen = [];
+  const pid = new mongoose.Types.ObjectId();
+  Product.find = (q) => {
+    seen.push(q);
+    return { session: async () => [{ _id: pid, clientId: "p", name: "Gone item", quantityOnHand: 10, costPrice: 1, sellPrice: 2, async save() { return this; } }] };
+  };
+  mongoose.startSession = async () => ({ withTransaction: (fn) => fn(), endSession() {} });
+  Sale.findOne = async () => null;
+  Sale.create = async ([doc]) => [{ ...doc, _id: new mongoose.Types.ObjectId(), toObject() { return { ...this }; } }];
+  StockMovement.insertMany = async () => [];
+  await performSaleCreation(STORE, OWNER, { items: [{ productId: String(pid), quantity: 1 }] }, "owner");
+  ok("a SALE still resolves soft-deleted products (offline revenue must not be lost)", seen.length > 0 && seen.every((q) => !("isDeleted" in q)), JSON.stringify(seen));
+}
+
+// ------------------------------------------- inviteTeammate duplicate email
+{
+  const { inviteTeammate } = await import("../src/controllers/authController.js");
+  const call = async (existing, createImpl) => {
+    User.findOne = async () => existing;
+    User.hashPassword = async () => "hash";
+    User.create = createImpl || (async (doc) => ({ ...doc, _id: new mongoose.Types.ObjectId(), toSafeJSON() { return { email: doc.email }; } }));
+    const res = fakeRes();
+    let err = null;
+    await inviteTeammate({ body: { name: "T", email: "  Bob@Shop.RW ", password: "pw123456", role: "cashier" }, user: { storeId: STORE, id: OWNER } }, res, (e) => { err = e; });
+    return { res, err };
+  };
+
+  let r = await call({ _id: "x" });
+  ok("inviting an email that's already on the team -> friendly 409 (not a 500)", r.res.statusCode === 409 && /already/i.test(r.err?.message || ""), `${r.res.statusCode} ${r.err?.message}`);
+
+  r = await call(null, async () => { throw Object.assign(new Error("E11000 duplicate key"), { code: 11000 }); });
+  ok("two people inviting the same email at once (race) -> the same friendly 409", r.res.statusCode === 409 && /already/i.test(r.err?.message || ""));
+
+  r = await call(null);
+  ok("a new email still works (201) with the email normalised", r.res.statusCode === 201 && r.err === null);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

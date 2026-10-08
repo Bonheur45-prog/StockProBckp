@@ -7,7 +7,7 @@ import CategorySelect from "../../components/CategorySelect/CategorySelect.jsx";
 import PhotoDropzone from "../../components/PhotoDropzone/PhotoDropzone.jsx";
 import BarcodeScanner from "../../components/BarcodeScanner/BarcodeScanner.jsx";
 import QrLabelSheet from "../../components/QrLabelSheet/QrLabelSheet.jsx";
-import { listProducts, createProduct, updateProduct, deleteProduct, restock, effectiveLowStockThreshold } from "../../lib/repo.js";
+import { listProducts, countProducts, createProduct, updateProduct, deleteProduct, restock, effectiveLowStockThreshold } from "../../lib/repo.js";
 import { generateSku, deriveSkuPrefix } from "../../lib/skuGen.js";
 import { extractBarcodeFromScan } from "../../lib/publicLink.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -30,6 +30,7 @@ export default function Products() {
   const location = useLocation();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
+  const [catalogCount, setCatalogCount] = useState(null); // null until the first load, so we never flash "No products yet"
   const [search, setSearch] = useState("");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -77,8 +78,9 @@ export default function Products() {
   }, [location.state]);
 
   async function load() {
-    const items = await listProducts({ search, lowStockOnly });
+    const [items, total] = await Promise.all([listProducts({ search, lowStockOnly }), countProducts()]);
     setProducts(items);
+    setCatalogCount(total);
   }
 
   useEffect(() => {
@@ -353,7 +355,10 @@ export default function Products() {
       <div className={styles.header}>
         <div>
           <h1>Products</h1>
-          <p className={styles.sub}>{products.length} in your catalog</p>
+          <p className={styles.sub}>
+            {catalogCount ?? 0} in your catalog
+            {(search || lowStockOnly) && catalogCount !== null && ` · ${products.length} match${products.length === 1 ? "" : "es"}`}
+          </p>
         </div>
         <div className={styles.headerActions}>
           <Button variant="ghost" onClick={handleExport} disabled={products.length === 0}>
@@ -403,13 +408,28 @@ export default function Products() {
       )}
 
       {products.length === 0 ? (
-        <Card>
-          <EmptyState
-            title="No products yet"
-            description="Add your first product to start tracking stock and taking sales."
-            action={canManageCatalog ? <Button variant="accent" onClick={openCreate}><Plus size={16} /> Add product</Button> : null}
-          />
-        </Card>
+        catalogCount === null ? null : catalogCount === 0 ? (
+          <Card>
+            <EmptyState
+              title="No products yet"
+              description="Add your first product to start tracking stock and taking sales."
+              action={canManageCatalog ? <Button variant="accent" onClick={openCreate}><Plus size={16} /> Add product</Button> : null}
+            />
+          </Card>
+        ) : (
+          // The catalog has products — the search or filter just matched none of them.
+          <Card>
+            <EmptyState
+              title={search ? `No products match “${search}”` : "No low-stock products"}
+              description={
+                search
+                  ? "Check the spelling, or search by SKU or barcode instead. Products you've removed no longer appear here."
+                  : "Nothing in your catalog is at or below its low-stock level right now."
+              }
+              action={<Button variant="ghost" onClick={() => { setSearch(""); setLowStockOnly(false); }}>Clear {search ? "search" : "filter"}</Button>}
+            />
+          </Card>
+        )
       ) : isMobile ? (
         <div className={styles.grid}>
           {pageItems.map((p) => (

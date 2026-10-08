@@ -112,6 +112,23 @@ describe("price history — written whenever a price REALLY changes", () => {
   });
 });
 
+describe("countProducts — the true catalog size (drives the Products page header and empty state)", () => {
+  it("counts this store's live products and ignores search, removed products and other stores", async () => {
+    await seedProduct({ clientId: "a", name: "Mosquito net" });
+    await seedProduct({ clientId: "b", name: "Hammer", sku: "H-1", barcode: "h1" });
+    await seedProduct({ clientId: "gone", name: "Removed", sku: "R-1", barcode: "r1", isDeleted: true });
+    await seedProduct({ clientId: "other", storeId: STORE_B, name: "Other store", sku: "O-1", barcode: "o1" });
+    expect(await repo.countProducts()).toBe(2);
+    // a search that matches nothing must not change the real count
+    expect(await repo.listProducts({ search: "zzz" })).toHaveLength(0);
+    expect(await repo.countProducts()).toBe(2);
+  });
+
+  it("is 0 for a store with no products", async () => {
+    expect(await repo.countProducts()).toBe(0);
+  });
+});
+
 describe("price lookup — 'what did this cost at time X?'", () => {
   async function seedHistory() {
     await seedProduct({ id: "srv1" });

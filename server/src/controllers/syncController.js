@@ -208,7 +208,8 @@ export const push = asyncHandler(async (req, res) => {
       if (newValue === null) throw Object.assign(new Error("Invalid price value"), { statusCode: 400 });
       const oldValue = toPrice(h.oldValue); // null when absent/invalid — fine for created/baseline rows
 
-      const productMap = await resolveProductRefs(storeId, [h.productId, h.productClientId]);
+      // includeDeleted: a price change made before the product was deleted is still true history.
+      const productMap = await resolveProductRefs(storeId, [h.productId, h.productClientId], undefined, { includeDeleted: true });
       const product = productMap.get(h.productId) || productMap.get(h.productClientId);
       if (!product) throw Object.assign(new Error("The product for this price change wasn't found"), { statusCode: 404 });
 

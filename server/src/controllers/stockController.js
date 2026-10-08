@@ -26,7 +26,7 @@ export async function applyStockMovement({ storeId, productId, type, quantityCha
       // synced — resolve either form to the real product document.
       const productMap = await resolveProductRefs(storeId, [productId], session);
       const product = productMap.get(productId);
-      if (!product) throw Object.assign(new Error("Product not found"), { statusCode: 404 });
+      if (!product) throw Object.assign(new Error("Product not found — it may have been removed from your catalog"), { statusCode: 404 });
 
       const quantityAfter = product.quantityOnHand + quantityChange;
       if (quantityAfter < 0) {
@@ -61,7 +61,7 @@ export async function applyStockMovement({ storeId, productId, type, quantityCha
     if (err.message?.includes("Transaction numbers")) {
       const productMap = await resolveProductRefs(storeId, [productId]);
       const product = productMap.get(productId);
-      if (!product) throw Object.assign(new Error("Product not found"), { statusCode: 404 });
+      if (!product) throw Object.assign(new Error("Product not found — it may have been removed from your catalog"), { statusCode: 404 });
       const quantityAfter = product.quantityOnHand + quantityChange;
       if (quantityAfter < 0) throw Object.assign(new Error(`Insufficient stock for ${product.name}`), { statusCode: 400 });
       product.quantityOnHand = quantityAfter;

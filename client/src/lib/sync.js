@@ -345,7 +345,11 @@ export async function listStuckRecords() {
   const out = [];
   for (const [type, table] of Object.entries(TABLES)) {
     const rows = await table.where("dirty").equals(1).and((r) => r.storeId === storeId).toArray();
-    for (const r of rows) if (r.syncError) out.push({ type, ...r });
+    // `type` is the SYNC type ("stockMovement"…), and must win: stock movements have their own
+    // `type` field ("restock"/"adjustment") which used to overwrite it, so a stuck restock
+    // showed a raw label and could not be discarded ("Unknown record type: restock").
+    // The record's own value stays available as `recordType`.
+    for (const r of rows) if (r.syncError) out.push({ ...r, recordType: r.type, type });
   }
   return out.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
 }

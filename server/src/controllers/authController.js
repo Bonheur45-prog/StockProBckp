@@ -200,14 +200,33 @@ export const inviteTeammate = asyncHandler(async (req, res) => {
     throw new Error("role must be manager or cashier");
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+  const alreadyOnTeam = await User.findOne({ storeId: req.user.storeId, email: normalizedEmail });
+  if (alreadyOnTeam) {
+    res.status(409);
+    throw new Error("Someone with that email is already on your team.");
+  }
+
   const passwordHash = await User.hashPassword(password);
-  const teammate = await User.create({
-    storeId: req.user.storeId,
-    name,
-    email: email.toLowerCase().trim(),
-    passwordHash,
-    role,
-  });
+  let teammate;
+  try {
+    teammate = await User.create({
+      storeId: req.user.storeId,
+      name,
+      email: normalizedEmail,
+      passwordHash,
+      role,
+    });
+  } catch (err) {
+    // Two invites for the same email at the same moment both pass the check
+    // above; the database's unique index catches the second. Same friendly
+    // answer instead of a generic 500.
+    if (err.code === 11000) {
+      res.status(409);
+      throw new Error("Someone with that email is already on your team.");
+    }
+    throw err;
+  }
 
   await logAction({
     storeId: req.user.storeId,

@@ -52,6 +52,20 @@ describe("listStuckRecords", () => {
     expect(await listStuckRecords()).toHaveLength(0);
   });
 
+  it("a stuck stock movement keeps its SYNC type — its own 'restock'/'adjustment' type must not overwrite it", async () => {
+    await db.stockMovements.put({ clientId: "m1", storeId: STORE_A, productId: "p1", type: "restock", reason: "delivery", quantity: 5, dirty: 1, syncError: "Product not found", createdAt: new Date().toISOString() });
+    const [stuck] = await listStuckRecords();
+    expect(stuck.type).toBe("stockMovement");
+    expect(stuck.recordType).toBe("restock"); // the movement's own type is still available, under another name
+  });
+
+  it("a stuck restock can actually be DISCARDED from the recovery screen", async () => {
+    await db.stockMovements.put({ clientId: "m1", storeId: STORE_A, productId: "p1", type: "restock", quantity: 5, dirty: 1, syncError: "Product not found", createdAt: new Date().toISOString() });
+    const [stuck] = await listStuckRecords();
+    await discardStuckRecord(stuck.type, stuck.clientId); // exactly what SyncIssues.jsx does
+    expect(await db.stockMovements.get("m1")).toBeUndefined();
+  });
+
   it("collects stuck records across multiple tables", async () => {
     await db.products.put({ clientId: "p1", storeId: STORE_A, name: "Hammer", dirty: 1, syncError: "role does not permit product changes", updatedAt: new Date().toISOString() });
     await db.suppliers.put({ clientId: "s1", storeId: STORE_A, name: "ACME", dirty: 1, syncError: "role does not permit supplier changes", updatedAt: new Date().toISOString() });

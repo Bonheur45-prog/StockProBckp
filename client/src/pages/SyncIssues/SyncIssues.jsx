@@ -35,7 +35,7 @@ function summarize(record) {
     case "sale":
       return `${record.customerName || "Walk-in customer"} — ${(record.total ?? 0).toLocaleString()}`;
     case "stockMovement":
-      return `${record.type === "restock" ? "Restock" : "Adjustment"}${record.reason ? ` — ${record.reason}` : ""}`;
+      return `${record.recordType === "restock" ? "Restock" : "Adjustment"}${record.reason ? ` — ${record.reason}` : ""}`;
     case "supplier":
       return record.name || "Unnamed supplier";
     case "purchaseOrder":

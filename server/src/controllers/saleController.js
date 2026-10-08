@@ -50,7 +50,11 @@ export async function performSaleCreation(storeId, userId, payload, userRole) {
     const customItems = items.filter((i) => i.isCustom || !i.productId);
 
     const productIds = productItems.map((i) => i.productId);
-    const productMap = await resolveProductRefs(storeId, productIds, session);
+    // includeDeleted: a sale is a record of something that ALREADY happened (money
+    // taken, goods handed over). If the product was deleted while this device
+    // was offline, rejecting the sale would turn real revenue into a stuck
+    // record someone might discard. So it is accepted and recorded.
+    const productMap = await resolveProductRefs(storeId, productIds, session, { includeDeleted: true });
 
     let subtotal = 0;
     const saleItems = [];

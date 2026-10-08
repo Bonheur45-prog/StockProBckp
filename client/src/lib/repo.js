@@ -83,6 +83,12 @@ export async function listProducts({ search, category, lowStockOnly, activeOnly 
   return items.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 }
 
+/** How many products the store really has (removed ones excluded), ignoring any search or filter — the page header and "is the catalog empty?" use this, not the filtered list. */
+export async function countProducts() {
+  const storeId = currentStoreId();
+  return db.products.filter((p) => !p.isDeleted && p.storeId === storeId).count();
+}
+
 export async function getProduct(clientId) {
   const product = await db.products.get(clientId);
   if (!product || product.storeId !== currentStoreId()) return undefined;

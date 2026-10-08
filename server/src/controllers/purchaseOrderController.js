@@ -109,7 +109,7 @@ export async function performCreatePurchaseOrder(storeId, userId, payload) {
 
   const resolvedItems = items.map((item) => {
     const product = productMap.get(item.productId);
-    if (!product) throw Object.assign(new Error(`Product ${item.productId} not found`), { statusCode: 404 });
+    if (!product) throw Object.assign(new Error(`A product on this order wasn't found — it may have been removed from your catalog (${item.name || item.productId})`), { statusCode: 404 });
     return {
       productId: product._id,
       name: product.name,

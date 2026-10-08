@@ -13,18 +13,27 @@ import Product from "../models/Product.js";
  * clientId UUID) to their Product documents in one pair of queries, keyed
  * by whatever the original ref string was — so callers can keep using
  * `map.get(item.productId)` unchanged regardless of which form it's in.
+ *
+ * Soft-deleted products are EXCLUDED by default, so new work (restocking,
+ * ordering) can't be pointed at a product the owner has removed. Pass
+ * { includeDeleted: true } where the record describes something that has
+ * ALREADY happened and must still be recorded: a sale rung up offline before
+ * the delete synced, or the price history of a product deleted afterwards.
+ * (isDeleted is matched with $ne: true so older documents that predate the
+ * field are still found.)
  */
-export async function resolveProductRefs(storeId, refs, session) {
+export async function resolveProductRefs(storeId, refs, session, { includeDeleted = false } = {}) {
+  const live = includeDeleted ? {} : { isDeleted: { $ne: true } };
   const unique = [...new Set(refs.filter(Boolean))];
   const objectIdRefs = unique.filter((r) => mongoose.Types.ObjectId.isValid(r));
   const clientIdRefs = unique.filter((r) => !mongoose.Types.ObjectId.isValid(r));
 
   const [byObjectId, byClientId] = await Promise.all([
     objectIdRefs.length
-      ? Product.find({ _id: { $in: objectIdRefs }, storeId }).session(session || undefined)
+      ? Product.find({ _id: { $in: objectIdRefs }, storeId, ...live }).session(session || undefined)
       : [],
     clientIdRefs.length
-      ? Product.find({ clientId: { $in: clientIdRefs }, storeId }).session(session || undefined)
+      ? Product.find({ clientId: { $in: clientIdRefs }, storeId, ...live }).session(session || undefined)
       : [],
   ]);
 
