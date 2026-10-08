@@ -15,6 +15,10 @@ import AuditLog from "../src/models/AuditLog.js";
 import { performUpsertExpense } from "../src/controllers/expenseController.js";
 import { performSaleCreation } from "../src/controllers/saleController.js";
 import { pull, push } from "../src/controllers/syncController.js";
+import { protect } from "../src/middleware/auth.js";
+import User from "../src/models/User.js";
+import Store from "../src/models/Store.js";
+import jwt from "jsonwebtoken";
 import { recordPriceChanges, priceAt, toPrice } from "../src/utils/priceHistory.js";
 
 let pass = 0;
@@ -332,6 +336,43 @@ const user = (role) => ({ id: role === "owner" ? OWNER : MANAGER, storeId: STORE
   res = fakeRes();
   await push({ body: { expenses: [{ ...exp, clientId: "ex-bad", amount: -1 }] }, user: user("owner") }, res, (e) => { throw e; });
   ok("invalid expense surfaces its validation message through sync", res.body.errors.length === 1 && /greater than 0/.test(res.body.errors[0].message));
+}
+
+// ------------------------------------------------ protect (auth middleware)
+{
+  process.env.JWT_SECRET = "test-secret";
+  const token = jwt.sign({ userId: "u1" }, process.env.JWT_SECRET);
+  const run = async (dbUser, store = { isActive: true }) => {
+    User.findById = async () => dbUser;
+    Store.findById = async () => store;
+    const res = fakeRes();
+    let nextArg = "NOT CALLED";
+    await protect({ headers: { authorization: `Bearer ${token}` } }, res, (e) => { nextArg = e; });
+    return { res, nextArg, req: null };
+  };
+  const base = { _id: new mongoose.Types.ObjectId(), isActive: true, role: "owner", name: "N", email: "n@x.rw" };
+
+  let r = await run({ ...base, isPlatformAdmin: true }); // no storeId — the real crash
+  ok("platform admin on a store route -> clean 403, not a TypeError 500", r.res.statusCode === 403 && r.nextArg instanceof Error && !(r.nextArg instanceof TypeError), String(r.nextArg));
+  ok("...and the message points them to the admin panel", /admin panel/.test(r.nextArg?.message || ""));
+
+  r = await run({ ...base, isPlatformAdmin: false });
+  ok("a store account with no store -> clean 403", r.res.statusCode === 403 && /isn't linked to a store/.test(r.nextArg?.message || ""));
+
+  const req = { headers: { authorization: `Bearer ${token}` } };
+  User.findById = async () => ({ ...base, storeId: new mongoose.Types.ObjectId(STORE), isPlatformAdmin: false });
+  Store.findById = async () => ({ isActive: true });
+  let err = "NOT CALLED";
+  await protect(req, fakeRes(), (e) => { err = e; });
+  ok("a normal store user passes and gets a string storeId", err === undefined && req.user.storeId === STORE && req.user.role === "owner");
+
+  r = await run({ ...base, storeId: new mongoose.Types.ObjectId(STORE), isPlatformAdmin: false }, { isActive: false });
+  ok("a suspended store is still refused with 403", r.res.statusCode === 403 && /suspended/.test(r.nextArg?.message || ""));
+
+  User.findById = async () => null;
+  const res401 = fakeRes();
+  await protect({ headers: { authorization: `Bearer ${token}` } }, res401, () => {});
+  ok("unknown user -> 401", res401.statusCode === 401);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

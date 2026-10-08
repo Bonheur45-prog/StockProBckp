@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react";
+import { useEffect, useRef, useState, Fragment } from "react";
 import {
   Plus, X, ChevronDown, ChevronUp, PackageCheck,
   TrendingDown, Trash2, Printer, Share2,
@@ -8,7 +8,6 @@ import {
   listPurchaseOrders, createPurchaseOrder, receivePurchaseOrder, updatePurchaseOrderStatus,
   listSuppliers, listProducts, getReorderSuggestions,
 } from "../../lib/repo.js";
-import { loadStoreLogo, printPurchaseOrder, sharePurchaseOrder } from "../../lib/poPdf.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import styles from "./PurchaseOrders.module.css";
 
@@ -47,7 +46,13 @@ export default function PurchaseOrders() {
   const [saving, setSaving] = useState(false);
   const [receiving, setReceiving] = useState(false);
 
-  const [logo, setLogo] = useState(null); // store logo, pre-loaded so Share never waits on the network inside the tap
+  // The PDF code (jsPDF + tables) is big, so it is NOT in the main bundle: it
+  // is fetched in the background when this page opens. Print/Share stay
+  // disabled until it is ready, so a tap never has to wait on a download —
+  // which matters because the share sheet only opens right after a tap.
+  const pdfTools = useRef(null);
+  const [pdfReady, setPdfReady] = useState(false);
+  const [logo, setLogo] = useState(null); // store logo, pre-loaded for the same reason
   const [notice, setNotice] = useState(null); // { tone: "warn" | "error", text } — result of Print/Share
   const [sharingId, setSharingId] = useState(null);
 
@@ -72,9 +77,20 @@ export default function PurchaseOrders() {
 
   useEffect(() => {
     let cancelled = false;
-    loadStoreLogo(store?.logoUrl).then((dataUrl) => {
-      if (!cancelled) setLogo(dataUrl);
-    });
+    import("../../lib/poPdf.js")
+      .then((tools) => {
+        if (cancelled) return;
+        pdfTools.current = tools;
+        setPdfReady(true); // buttons don't wait for the logo
+        return tools.loadStoreLogo(store?.logoUrl).then((dataUrl) => {
+          if (!cancelled) setLogo(dataUrl);
+        });
+      })
+      .catch(() => {
+        if (!cancelled && !pdfTools.current) {
+          setNotice({ tone: "error", text: "Couldn't load the PDF tools. Check your connection and reload the page to use Print and Share." });
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -88,7 +104,7 @@ export default function PurchaseOrders() {
   function handlePrint(order) {
     setNotice(null);
     try {
-      const result = printPurchaseOrder({ order, store, supplier: supplierFor(order), logoDataUrl: logo });
+      const result = pdfTools.current.printPurchaseOrder({ order, store, supplier: supplierFor(order), logoDataUrl: logo });
       if (result.method === "download") {
         setNotice({ tone: "warn", text: "Your browser blocked the print window, so the PDF was downloaded instead — open it to print." });
       }
@@ -101,7 +117,7 @@ export default function PurchaseOrders() {
     setNotice(null);
     setSharingId(order.clientId);
     try {
-      const result = await sharePurchaseOrder({ order, store, supplier: supplierFor(order), logoDataUrl: logo });
+      const result = await pdfTools.current.sharePurchaseOrder({ order, store, supplier: supplierFor(order), logoDataUrl: logo });
       if (result.method === "download") {
         setNotice({ tone: "warn", text: "This browser can't share files directly, so the PDF was downloaded — attach it in WhatsApp or email to send it." });
       }
@@ -298,10 +314,10 @@ export default function PurchaseOrders() {
                           <div className={styles.rowActions}>
                             {canEdit && order.status !== "cancelled" && (
                               <>
-                                <Button variant="ghost" size="sm" onClick={() => handlePrint(order)} title="Print this order as a PDF">
+                                <Button variant="ghost" size="sm" onClick={() => handlePrint(order)} disabled={!pdfReady} title={pdfReady ? "Print this order as a PDF" : "Getting the PDF tools ready…"}>
                                   <Printer size={14} /> Print
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => handleShare(order)} disabled={sharingId === order.clientId} title="Send this order as a PDF (WhatsApp, email…)">
+                                <Button variant="ghost" size="sm" onClick={() => handleShare(order)} disabled={!pdfReady || sharingId === order.clientId} title={pdfReady ? "Send this order as a PDF (WhatsApp, email…)" : "Getting the PDF tools ready…"}>
                                   <Share2 size={14} /> {sharingId === order.clientId ? "Preparing…" : "Share"}
                                 </Button>
                               </>

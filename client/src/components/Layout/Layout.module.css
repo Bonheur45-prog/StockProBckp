@@ -21,6 +21,7 @@
   align-items: center;
   gap: 10px;
   padding: 6px 8px 22px;
+  flex-shrink: 0; /* stays pinned at the top while the nav list scrolls */
 }
 
 .brandMark {
@@ -67,6 +68,24 @@
   flex-direction: column;
   gap: 2px;
   flex: 1;
+  /* The sidebar is exactly one screen tall. Without min-height: 0 a flex
+     child can't shrink below its content, so a long nav list (11 items now)
+     pushed the user box and Log out button off the bottom of the screen.
+     Now only the list scrolls; brand and Log out stay put. */
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-border) transparent;
+}
+
+/* Short laptop screens: tighter rows so the whole list usually fits without scrolling. */
+@media (min-width: 861px) and (max-height: 820px) {
+  .navItem {
+    padding: 7px 12px;
+  }
+  .brand {
+    padding-bottom: 14px;
+  }
 }
 
 .navItem {
@@ -97,6 +116,7 @@
   border-top: 1px solid var(--ink-border);
   padding-top: 14px;
   margin-top: 10px;
+  flex-shrink: 0; /* Log out is always visible */
 }
 
 .userName {
