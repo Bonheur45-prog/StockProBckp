@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import StockMovement from "../models/StockMovement.js";
 import { logAction } from "../utils/audit.js";
 import { resolveProductRefs } from "../utils/productRef.js";
+import { parsePaging, parseDateParam } from "../utils/queryParams.js";
 
 /**
  * Applies a stock movement to a product and writes the movement record,
@@ -146,21 +147,27 @@ export const adjustStock = asyncHandler(async (req, res) => {
 
 // GET /api/stock/movements?productId=&from=&to=&page=&limit=
 export const listMovements = asyncHandler(async (req, res) => {
-  const { productId, from, to, page = 1, limit = 50 } = req.query;
-
-  const query = { storeId: req.user.storeId };
-  if (productId) query.productId = productId;
-  if (from || to) {
-    query.createdAt = {};
-    if (from) query.createdAt.$gte = new Date(from);
-    if (to) query.createdAt.$lte = new Date(to);
+  const { productId } = req.query;
+  const { page, limit, skip } = parsePaging(req.query, { defaultLimit: 50 });
+  const from = parseDateParam(req.query.from);
+  const to = parseDateParam(req.query.to);
+  if (from === null || to === null) {
+    res.status(400);
+    throw new Error("from/to must be valid dates");
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const query = { storeId: req.user.storeId };
+  if (typeof productId === "string" && productId) query.productId = productId;
+  if (from || to) {
+    query.createdAt = {};
+    if (from) query.createdAt.$gte = from;
+    if (to) query.createdAt.$lte = to;
+  }
+
   const [items, total] = await Promise.all([
-    StockMovement.find(query).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).populate("productId", "name sku"),
+    StockMovement.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("productId", "name sku"),
     StockMovement.countDocuments(query),
   ]);
 
-  res.json({ items, total, page: Number(page), limit: Number(limit) });
+  res.json({ items, total, page, limit });
 });

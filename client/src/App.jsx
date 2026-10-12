@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
 import AdminStores from "./pages/Admin/AdminStores.jsx";
 import AdminStoreDetail from "./pages/Admin/AdminStoreDetail.jsx";
 import AdminSupport from "./pages/Admin/AdminSupport.jsx";
+import AdminAppearance from "./pages/Admin/AdminAppearance.jsx";
 import Dashboard from "./pages/Dashboard/Dashboard.jsx";
 import Products from "./pages/Products/Products.jsx";
 import POS from "./pages/POS/POS.jsx";
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="stores" element={<AdminStores />} />
         <Route path="stores/:id" element={<AdminStoreDetail />} />
         <Route path="support" element={<AdminSupport />} />
+        <Route path="appearance" element={<AdminAppearance />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

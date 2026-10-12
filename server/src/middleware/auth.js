@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import User from "../models/User.js";
 import Store from "../models/Store.js";
+import { tokenPredatesPasswordChange } from "../utils/token.js";
 
 export const protect = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || "";
@@ -24,6 +25,10 @@ export const protect = asyncHandler(async (req, res, next) => {
   if (!user || !user.isActive) {
     res.status(401);
     throw new Error("Account not found or deactivated");
+  }
+  if (tokenPredatesPasswordChange(decoded, user.passwordChangedAt)) {
+    res.status(401);
+    throw new Error("Your password was changed. Please sign in again.");
   }
 
   // A platform admin (or any account with no store) has nothing to scope a
@@ -89,6 +94,10 @@ export const protectAdmin = asyncHandler(async (req, res, next) => {
   if (!user || !user.isActive || !user.isPlatformAdmin) {
     res.status(403);
     throw new Error("Not authorized as a platform admin");
+  }
+  if (tokenPredatesPasswordChange(decoded, user.passwordChangedAt)) {
+    res.status(401);
+    throw new Error("Your password was changed. Please sign in again.");
   }
 
   req.admin = { id: user._id.toString(), name: user.name, email: user.email };

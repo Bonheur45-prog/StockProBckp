@@ -4,6 +4,7 @@ import Sale from "../models/Sale.js";
 import Product from "../models/Product.js";
 import AuditLog from "../models/AuditLog.js";
 import Store from "../models/Store.js";
+import { parsePaging, parseDateParam } from "../utils/queryParams.js";
 
 // GET /api/reports/dashboard
 export const dashboard = asyncHandler(async (req, res) => {
@@ -34,8 +35,14 @@ export const dashboard = asyncHandler(async (req, res) => {
 // GET /api/reports/sales-over-time?from=&to=&groupBy=day
 export const salesOverTime = asyncHandler(async (req, res) => {
   const storeId = new mongoose.Types.ObjectId(req.user.storeId);
-  const from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const to = req.query.to ? new Date(req.query.to) : new Date();
+  const rawFrom = parseDateParam(req.query.from);
+  const rawTo = parseDateParam(req.query.to);
+  if (rawFrom === null || rawTo === null) {
+    res.status(400);
+    throw new Error("from/to must be valid dates");
+  }
+  const from = rawFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const to = rawTo ?? new Date();
 
   const results = await Sale.aggregate([
     { $match: { storeId, status: "completed", occurredAt: { $gte: from, $lte: to } } },
@@ -55,9 +62,15 @@ export const salesOverTime = asyncHandler(async (req, res) => {
 // GET /api/reports/top-products?from=&to=&limit=10
 export const topProducts = asyncHandler(async (req, res) => {
   const storeId = new mongoose.Types.ObjectId(req.user.storeId);
-  const from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const to = req.query.to ? new Date(req.query.to) : new Date();
-  const limit = Number(req.query.limit) || 10;
+  const rawFrom = parseDateParam(req.query.from);
+  const rawTo = parseDateParam(req.query.to);
+  if (rawFrom === null || rawTo === null) {
+    res.status(400);
+    throw new Error("from/to must be valid dates");
+  }
+  const from = rawFrom ?? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const to = rawTo ?? new Date();
+  const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 10, 1), 100);
 
   const results = await Sale.aggregate([
     { $match: { storeId, status: "completed", occurredAt: { $gte: from, $lte: to } } },
@@ -92,33 +105,53 @@ export const lowStock = asyncHandler(async (req, res) => {
 
 // GET /api/reports/activity?page=&limit=&from=&to=  (premium: accountability / audit feed)
 export const activityFeed = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 50, from, to } = req.query;
-  const skip = (Number(page) - 1) * Number(limit);
+  const { page, limit, skip } = parsePaging(req.query, { defaultLimit: 50 });
+  const from = parseDateParam(req.query.from);
+  const to = parseDateParam(req.query.to);
+  if (from === null || to === null) {
+    res.status(400);
+    throw new Error("from/to must be valid dates");
+  }
 
   const query = { storeId: req.user.storeId };
   if (from || to) {
     query.createdAt = {};
-    if (from) query.createdAt.$gte = new Date(from);
-    if (to) query.createdAt.$lte = new Date(to);
+    if (from) query.createdAt.$gte = from;
+    if (to) query.createdAt.$lte = to;
   }
 
-  const [items, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     AuditLog.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit))
-      .populate("userId", "name role"),
+      .limit(limit)
+      .populate("userId", "name role isPlatformAdmin"),
     AuditLog.countDocuments(query),
   ]);
 
-  res.json({ items, total, page: Number(page), limit: Number(limit) });
+  // Platform (BrightLink) staff act on a store only for support; the store
+  // sees a generic label, never the staff member's name.
+  const items = rows.map((row) => {
+    const o = row.toObject();
+    if (o.userId?.isPlatformAdmin) o.userId = { name: "BrightLink support", role: "support" };
+    else if (o.userId) delete o.userId.isPlatformAdmin;
+    return o;
+  });
+
+  res.json({ items, total, page, limit });
 });
 
 // GET /api/reports/staff-performance?from=&to=  (owner/manager only, enforced in route)
 export const staffPerformance = asyncHandler(async (req, res) => {
   const storeId = new mongoose.Types.ObjectId(req.user.storeId);
-  const from = req.query.from ? new Date(req.query.from) : new Date(0);
-  const to = req.query.to ? new Date(req.query.to) : new Date();
+  const rawFrom = parseDateParam(req.query.from);
+  const rawTo = parseDateParam(req.query.to);
+  if (rawFrom === null || rawTo === null) {
+    res.status(400);
+    throw new Error("from/to must be valid dates");
+  }
+  const from = rawFrom ?? new Date(0);
+  const to = rawTo ?? new Date();
 
   const results = await Sale.aggregate([
     { $match: { storeId, status: "completed", occurredAt: { $gte: from, $lte: to } } },

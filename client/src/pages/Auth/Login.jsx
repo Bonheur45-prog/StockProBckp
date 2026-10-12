@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { Card, Field, Input, Button } from "../../components/ui/ui.jsx";
+import AuthBackground from "../../components/AuthBackground/AuthBackground.jsx";
+import { useAuthBackground } from "../../lib/authBackground.js";
 import styles from "./Auth.module.css";
 
 export default function Login() {
@@ -9,6 +11,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "", storeSlug: "" });
   const [error, setError] = useState("");
+  const background = useAuthBackground();
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -27,6 +30,7 @@ export default function Login() {
 
   return (
     <div className={styles.wrap}>
+      <AuthBackground settings={background} />
       <div className={styles.brandSide}>
         <div className={styles.brandMark}>SP</div>
         <h1>StockPro</h1>
@@ -42,7 +46,7 @@ export default function Login() {
           <Field label="Password">
             <Input type="password" required value={form.password} onChange={(e) => update("password", e.target.value)} placeholder="••••••••" />
           </Field>
-          <Field label="Store (only needed if your email is used at more than one store)" hint="Optional">
+          <Field label="Store code (only if asked)" hint="Optional">
             <Input value={form.storeSlug} onChange={(e) => update("storeSlug", e.target.value)} placeholder="e.g. sunrise-hardware" />
           </Field>
           {error && <p className={styles.error}>{error}</p>}

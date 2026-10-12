@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutGrid, Store as StoreIcon, LifeBuoy, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutGrid, Store as StoreIcon, LifeBuoy, Palette, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import styles from "./AdminLayout.module.css";
 
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: LayoutGrid, end: true },
   { to: "/admin/stores", label: "Stores", icon: StoreIcon },
   { to: "/admin/support", label: "Support", icon: LifeBuoy },
+  { to: "/admin/appearance", label: "Appearance", icon: Palette },
 ];
 
 export default function AdminLayout() {

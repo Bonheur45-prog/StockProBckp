@@ -20,6 +20,10 @@ const userSchema = new mongoose.Schema(
     isPlatformAdmin: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
     lastLoginAt: { type: Date },
+    // Set whenever the password changes (own change or admin reset). A token
+    // issued before this moment is rejected by protect/protectAdmin, so a
+    // changed password actually signs out every other device/thief.
+    passwordChangedAt: { type: Date },
   },
   { timestamps: true }
 );

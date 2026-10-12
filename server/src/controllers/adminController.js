@@ -1,3 +1,4 @@
+import { logAction } from "../utils/audit.js";
 import asyncHandler from "express-async-handler";
 import Store from "../models/Store.js";
 import User from "../models/User.js";
@@ -145,7 +146,7 @@ export const searchUsers = asyncHandler(async (req, res) => {
 // right now, since there's no email-based reset flow anywhere in the app.
 export const resetUserPassword = asyncHandler(async (req, res) => {
   const { newPassword } = req.body;
-  if (!newPassword || newPassword.length < 8) {
+  if (typeof newPassword !== "string" || newPassword.length < 8) {
     res.status(400);
     throw new Error("newPassword must be at least 8 characters");
   }
@@ -157,7 +158,21 @@ export const resetUserPassword = asyncHandler(async (req, res) => {
   }
 
   user.passwordHash = await User.hashPassword(newPassword);
+  // Signs out every session that was opened with the old password.
+  user.passwordChangedAt = new Date();
   await user.save();
+
+  // Leave a trace in the affected store's own activity log (never the password).
+  if (user.storeId) {
+    await logAction({
+      storeId: user.storeId,
+      userId: req.user._id,
+      action: "user.password_reset_by_support",
+      entityType: "User",
+      entityId: user._id,
+      metadata: { targetName: user.name },
+    });
+  }
 
   res.json({ success: true });
 });

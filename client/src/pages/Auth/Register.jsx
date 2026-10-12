@@ -5,6 +5,8 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { Card, Field, Input, Select, Button } from "../../components/ui/ui.jsx";
 import StepIndicator from "../../components/StepIndicator/StepIndicator.jsx";
 import { deriveSkuPrefix } from "../../lib/skuGen.js";
+import AuthBackground from "../../components/AuthBackground/AuthBackground.jsx";
+import { useAuthBackground } from "../../lib/authBackground.js";
 import styles from "./Auth.module.css";
 
 const STEPS = [{ label: "Business" }, { label: "Location" }, { label: "Preferences" }, { label: "Review" }];
@@ -42,6 +44,7 @@ export default function Register() {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [skuPrefixTouched, setSkuPrefixTouched] = useState(false);
+  const background = useAuthBackground();
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -90,6 +93,7 @@ export default function Register() {
 
   return (
     <div className={styles.wrap}>
+      <AuthBackground settings={background} />
       <div className={styles.brandSide}>
         <div className={styles.brandMark}>SP</div>
         <h1>StockPro</h1>

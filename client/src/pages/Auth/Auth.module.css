@@ -3,6 +3,13 @@
   display: grid;
   grid-template-columns: 1fr 560px;
   background: var(--ink-900);
+  position: relative; /* the admin-chosen background layer sits behind the content */
+}
+
+.brandSide,
+.formCard {
+  position: relative;
+  z-index: 1;
 }
 
 .brandSide {

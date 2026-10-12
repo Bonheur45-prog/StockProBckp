@@ -11,14 +11,14 @@ cloudinary.config({
  * Applies automatic compression/format so product photos stay light
  * for a mostly-mobile, sometimes-offline user base.
  */
-export function uploadBufferToCloudinary(buffer, { folder, publicId } = {}) {
+export function uploadBufferToCloudinary(buffer, { folder, publicId, transformation } = {}) {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: folder || "hardware-saas/products",
         public_id: publicId,
         resource_type: "image",
-        transformation: [
+        transformation: transformation || [
           { width: 1000, height: 1000, crop: "limit" },
           { quality: "auto:good" },
           { fetch_format: "auto" },

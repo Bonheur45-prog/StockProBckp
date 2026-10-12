@@ -19,10 +19,23 @@ const authLimiter = rateLimit({
   limit: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  // Only failed attempts count: a shop with many staff behind one router IP
+  // signing in successfully must not lock itself out.
+  skipSuccessfulRequests: true,
   message: { message: "Too many attempts. Please wait a few minutes and try again." },
 });
 
-router.post("/register-store", authLimiter, registerStore);
+// Registration is not a password guess, so every request counts, but at a
+// separate budget from login.
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many sign-ups from this network. Please try again later." },
+});
+
+router.post("/register-store", registerLimiter, registerStore);
 router.post("/login", authLimiter, login);
 router.get("/me", protect, getMe);
 router.put("/me", protect, updateMe);

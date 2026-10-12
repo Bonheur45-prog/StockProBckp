@@ -5,6 +5,7 @@ import Product from "../models/Product.js";
 import StockMovement from "../models/StockMovement.js";
 import { logAction } from "../utils/audit.js";
 import { resolveProductRefs } from "../utils/productRef.js";
+import { parsePaging, parseDateParam } from "../utils/queryParams.js";
 
 /**
  * Core sale-creation logic, reused by both the direct POST /api/sales route
@@ -189,23 +190,29 @@ export const createSale = asyncHandler(async (req, res) => {
 
 // GET /api/sales?from=&to=&status=&page=&limit=
 export const listSales = asyncHandler(async (req, res) => {
-  const { from, to, status, page = 1, limit = 50 } = req.query;
-
-  const query = { storeId: req.user.storeId };
-  if (status) query.status = status;
-  if (from || to) {
-    query.occurredAt = {};
-    if (from) query.occurredAt.$gte = new Date(from);
-    if (to) query.occurredAt.$lte = new Date(to);
+  const { status } = req.query;
+  const { page, limit, skip } = parsePaging(req.query, { defaultLimit: 50 });
+  const from = parseDateParam(req.query.from);
+  const to = parseDateParam(req.query.to);
+  if (from === null || to === null) {
+    res.status(400);
+    throw new Error("from/to must be valid dates");
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const query = { storeId: req.user.storeId };
+  if (typeof status === "string" && status) query.status = status;
+  if (from || to) {
+    query.occurredAt = {};
+    if (from) query.occurredAt.$gte = from;
+    if (to) query.occurredAt.$lte = to;
+  }
+
   const [items, total] = await Promise.all([
-    Sale.find(query).sort({ occurredAt: -1 }).skip(skip).limit(Number(limit)).populate("soldByUserId", "name"),
+    Sale.find(query).sort({ occurredAt: -1 }).skip(skip).limit(limit).populate("soldByUserId", "name"),
     Sale.countDocuments(query),
   ]);
 
-  res.json({ items, total, page: Number(page), limit: Number(limit) });
+  res.json({ items, total, page, limit });
 });
 
 // GET /api/sales/:id

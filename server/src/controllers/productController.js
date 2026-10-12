@@ -169,6 +169,7 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     action: "product.delete",
     entityType: "Product",
     entityId: product._id,
+    metadata: { name: product.name, sku: product.sku },
   });
 
   res.status(204).send();

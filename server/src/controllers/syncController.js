@@ -10,6 +10,7 @@ import Expense from "../models/Expense.js";
 import PriceHistory, { PRICE_FIELDS, PRICE_HISTORY_KINDS } from "../models/PriceHistory.js";
 import { resolveProductRefs } from "../utils/productRef.js";
 import { toPrice } from "../utils/priceHistory.js";
+import { logAction } from "../utils/audit.js";
 import { performUpsertExpense } from "./expenseController.js";
 import { performSaleCreation } from "./saleController.js";
 import { applyStockMovement } from "./stockController.js";
@@ -62,7 +63,10 @@ function safeSyncErrorMessage(err, context) {
  * race where a write lands between "query ran" and "client saved cursor".
  */
 export const pull = asyncHandler(async (req, res) => {
-  const since = req.query.since ? new Date(req.query.since) : new Date(0);
+  // An unparseable `since` falls back to a full pull (safe: the caller only
+  // ever receives its own store's data) instead of crashing the query.
+  const parsedSince = typeof req.query.since === "string" ? new Date(req.query.since) : null;
+  const since = parsedSince && !Number.isNaN(parsedSince.getTime()) ? parsedSince : new Date(0);
   const storeId = req.user.storeId;
   const serverTime = new Date();
 
@@ -145,6 +149,7 @@ export const push = asyncHandler(async (req, res) => {
       if (existing) {
         const clientUpdatedAt = p.updatedAt ? new Date(p.updatedAt) : null;
         if (clientUpdatedAt && clientUpdatedAt > existing.updatedAt) {
+          const wasDeleted = !!existing.isDeleted;
           Object.assign(existing, {
             name: p.name, sku: p.sku, barcode: p.barcode, category: p.category, unit: p.unit,
             costPrice: p.costPrice, sellPrice: p.sellPrice, lowStockThreshold: p.lowStockThreshold,
@@ -159,6 +164,19 @@ export const push = asyncHandler(async (req, res) => {
           });
           existing.updatedBy = userId;
           await existing.save();
+          // Deletes and restores made in the app arrive here, not through the
+          // REST routes, so they must be recorded here. Plain edits are not
+          // logged: every sale/restock re-pushes the product and would flood
+          // the trail.
+          if (wasDeleted !== !!existing.isDeleted) {
+            await logAction({
+              storeId, userId,
+              action: existing.isDeleted ? "product.delete" : "product.restore",
+              entityType: "Product",
+              entityId: existing._id,
+              metadata: { name: existing.name, sku: existing.sku, source: "sync" },
+            });
+          }
         }
         results.products.push(existing);
       } else {
@@ -176,9 +194,22 @@ export const push = asyncHandler(async (req, res) => {
           imageUrl: p.imageUrl || undefined,
           imagePublicId: p.imagePublicId || undefined,
           clientId: p.clientId,
+          // A product made and removed before its first sync arrives already
+          // deleted; without this it would be resurrected on the server.
+          isDeleted: !!p.isDeleted,
           createdBy: userId,
           updatedBy: userId,
         });
+        await logAction({
+          storeId, userId, action: "product.create", entityType: "Product",
+          entityId: created._id, metadata: { name: created.name, sku: created.sku, source: "sync" },
+        });
+        if (created.isDeleted) {
+          await logAction({
+            storeId, userId, action: "product.delete", entityType: "Product",
+            entityId: created._id, metadata: { name: created.name, sku: created.sku, source: "sync" },
+          });
+        }
         results.products.push(created);
       }
     } catch (err) {

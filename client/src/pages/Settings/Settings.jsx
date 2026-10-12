@@ -164,6 +164,9 @@ function MyAccountTab() {
         payload.newPassword = newPassword;
       }
       const { data } = await api.put("/auth/me", payload);
+      // Changing the password signs out every OTHER device; the server hands
+      // this one a fresh token so the person making the change stays signed in.
+      if (data.token) localStorage.setItem("token", data.token);
       updateUser(data.user);
       setCurrentPassword("");
       setNewPassword("");

@@ -20,12 +20,22 @@ import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
+// Behind Caddy/Nginx every request arrives from the proxy's address. Without
+// this, rate limits (login/register) see ONE client for everybody and can lock
+// the whole shop out after a few attempts, and req.ip in logs is the proxy's.
+// 1 = trust exactly one proxy hop (the reverse proxy on the same VPS).
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS) || 1);
+}
+
 const allowedOrigins = (process.env.CLIENT_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: allowedOrigins.length ? allowedOrigins : true,
+    // Production never falls back to "any origin" (server.js refuses to start without
+    // CLIENT_ORIGINS); open CORS is only for local development.
+    origin: allowedOrigins.length ? allowedOrigins : process.env.NODE_ENV === "production" ? false : true,
     credentials: true,
   })
 );

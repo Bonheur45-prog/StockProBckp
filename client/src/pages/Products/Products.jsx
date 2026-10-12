@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Plus, Search, Pencil, Trash2, ImagePlus, X, Download, Upload, ScanBarcode, Wand2, QrCode } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ImagePlus, X, Download, Upload, ScanBarcode, Wand2, QrCode, Undo2 } from "lucide-react";
 import { Card, Button, Field, Input, Select, Badge, EmptyState } from "../../components/ui/ui.jsx";
 import StockGauge from "../../components/StockGauge/StockGauge.jsx";
 import CategorySelect from "../../components/CategorySelect/CategorySelect.jsx";
 import PhotoDropzone from "../../components/PhotoDropzone/PhotoDropzone.jsx";
 import BarcodeScanner from "../../components/BarcodeScanner/BarcodeScanner.jsx";
 import QrLabelSheet from "../../components/QrLabelSheet/QrLabelSheet.jsx";
-import { listProducts, countProducts, createProduct, updateProduct, deleteProduct, restock, effectiveLowStockThreshold } from "../../lib/repo.js";
+import { listProducts, countProducts, listRemovedProducts, restoreProduct, createProduct, updateProduct, deleteProduct, restock, effectiveLowStockThreshold } from "../../lib/repo.js";
 import { generateSku, deriveSkuPrefix } from "../../lib/skuGen.js";
 import { extractBarcodeFromScan } from "../../lib/publicLink.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -48,6 +48,10 @@ export default function Products() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [importPreview, setImportPreview] = useState(null); // { toCreate, toRestock, skipped }
   const [importing, setImporting] = useState(false);
+  const [removed, setRemoved] = useState([]); // removed (soft-deleted) products, for the restore dialog
+  const [removedOpen, setRemovedOpen] = useState(false);
+  const [restoringId, setRestoringId] = useState(null);
+  const [removedError, setRemovedError] = useState("");
   const fileInputRef = useRef(null);
 
   // Manage the blob URL for a locally-selected (not yet uploaded) photo
@@ -78,9 +82,10 @@ export default function Products() {
   }, [location.state]);
 
   async function load() {
-    const [items, total] = await Promise.all([listProducts({ search, lowStockOnly }), countProducts()]);
+    const [items, total, gone] = await Promise.all([listProducts({ search, lowStockOnly }), countProducts(), listRemovedProducts()]);
     setProducts(items);
     setCatalogCount(total);
+    setRemoved(gone);
   }
 
   useEffect(() => {
@@ -91,6 +96,19 @@ export default function Products() {
     const interval = setInterval(load, 5000);
     return () => clearInterval(interval);
   }, [search, lowStockOnly]);
+
+  async function handleRestore(product) {
+    setRestoringId(product.clientId);
+    setRemovedError("");
+    try {
+      await restoreProduct(product.clientId);
+      await load();
+    } catch (err) {
+      setRemovedError(err.message || "Couldn't restore this product");
+    } finally {
+      setRestoringId(null);
+    }
+  }
 
   function openCreate() {
     if (!canManageCatalog) return;
@@ -366,6 +384,11 @@ export default function Products() {
           </Button>
           {canManageCatalog && (
             <>
+              {removed.length > 0 && (
+                <Button variant="ghost" onClick={() => { setRemovedError(""); setRemovedOpen(true); }}>
+                  <Undo2 size={16} /> Removed ({removed.length})
+                </Button>
+              )}
               <Button variant="ghost" onClick={handleBackfillCodes} disabled={backfilling}>
                 <Wand2 size={16} /> Generate missing codes
               </Button>
@@ -412,7 +435,11 @@ export default function Products() {
           <Card>
             <EmptyState
               title="No products yet"
-              description="Add your first product to start tracking stock and taking sales."
+              description={
+                canManageCatalog && removed.length > 0
+                  ? `Add a product to start tracking stock and taking sales. ${removed.length} removed product${removed.length === 1 ? "" : "s"} can be brought back.`
+                  : "Add your first product to start tracking stock and taking sales."
+              }
               action={canManageCatalog ? <Button variant="accent" onClick={openCreate}><Plus size={16} /> Add product</Button> : null}
             />
           </Card>
@@ -578,6 +605,40 @@ export default function Products() {
             setSelectedIds(new Set());
           }}
         />
+      )}
+
+      {removedOpen && (
+        <div className={styles.overlay} onClick={() => setRemovedOpen(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Removed products</h2>
+              <button className={styles.iconBtn} onClick={() => setRemovedOpen(false)}><X size={18} /></button>
+            </div>
+            <div className={styles.form}>
+              {removedError && <p className={styles.removedError}>{removedError}</p>}
+              {removed.length === 0 ? (
+                <p className={styles.importSummary}>No removed products.</p>
+              ) : (
+                <ul className={styles.importList}>
+                  {removed.map((p) => (
+                    <li key={p.clientId} className={styles.removedRow}>
+                      <span>
+                        {p.name}
+                        <span className={styles.removedMeta}>
+                          {[p.sku, p.barcode].filter(Boolean).join(" · ")}
+                          {p.updatedAt ? ` · removed ${new Date(p.updatedAt).toLocaleDateString()}` : ""}
+                        </span>
+                      </span>
+                      <Button type="button" variant="ghost" onClick={() => handleRestore(p)} disabled={restoringId === p.clientId}>
+                        {restoringId === p.clientId ? "Restoring…" : "Restore"}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {importPreview && (

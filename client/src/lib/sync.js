@@ -59,7 +59,7 @@ function notify(status) {
 
 /** Strips Dexie-only bookkeeping fields before sending a record to the server. */
 function toServerPayload(record) {
-  const { dirty, id, ...rest } = record;
+  const { dirty: _dirty, id: _id, ...rest } = record;
   return rest;
 }
 

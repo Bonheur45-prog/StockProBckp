@@ -358,7 +358,7 @@ export default function Reports() {
                       <tr key={a._id}>
                         <td><Badge tone="neutral">{a.action}</Badge></td>
                         <td>{a.userId?.name || "Someone"}</td>
-                        <td>{a.entityType}</td>
+                        <td>{a.entityType}{a.metadata?.name ? ` · ${a.metadata.name}` : ""}</td>
                         <td data-align="right" className="data-table-mono">{new Date(a.createdAt).toLocaleString()}</td>
                       </tr>
                     ))}

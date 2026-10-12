@@ -89,6 +89,39 @@ export async function countProducts() {
   return db.products.filter((p) => !p.isDeleted && p.storeId === storeId).count();
 }
 
+/** Products that were removed (soft-deleted), newest removal first. Owner/manager only: a cashier gets nothing. */
+export async function listRemovedProducts() {
+  const user = currentUser();
+  if (user?.role !== "owner" && user?.role !== "manager") return [];
+  const items = await db.products.filter((p) => p.isDeleted && p.storeId === user.storeId).toArray();
+  return items.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+}
+
+export async function countRemovedProducts() {
+  return (await listRemovedProducts()).length;
+}
+
+/**
+ * Bring a removed product back. Owner/manager only. If its barcode/SKU has
+ * since been taken by another product the duplicate check refuses, and we say
+ * what to do about it instead of failing silently.
+ */
+export async function restoreProduct(clientId) {
+  const user = currentUser();
+  if (user?.role !== "owner" && user?.role !== "manager") throw new Error("Only an owner or manager can restore a product");
+  const existing = await db.products.get(clientId);
+  if (!existing || existing.storeId !== user.storeId) throw new Error("Product not found locally");
+  if (!existing.isDeleted) throw new Error(`"${existing.name}" isn't removed`);
+  try {
+    return await updateProduct(clientId, { isDeleted: false });
+  } catch (err) {
+    if (/already used by/.test(err.message)) {
+      throw new Error(`Can't restore "${existing.name}": ${err.message}. Change that product's code first, then restore this one.`);
+    }
+    throw err;
+  }
+}
+
 export async function getProduct(clientId) {
   const product = await db.products.get(clientId);
   if (!product || product.storeId !== currentStoreId()) return undefined;
@@ -122,14 +155,18 @@ export async function listCategories() {
  * server for the same rule. excludeClientId lets an update check against
  * every *other* product without flagging itself as a duplicate. */
 async function assertNoDuplicateCodesLocally(storeId, { barcode, sku }, excludeClientId) {
-  const items = await db.products.filter((p) => !p.isDeleted && p.storeId === storeId && p.clientId !== excludeClientId).toArray();
+  // Removed products count too: the server keeps their codes reserved
+  // (unique index includes soft-deleted rows), so ignoring them here would
+  // let a record through that the server later rejects and leaves stuck.
+  const items = await db.products.filter((p) => p.storeId === storeId && p.clientId !== excludeClientId).toArray();
+  const label = (p) => `"${p.name}"${p.isDeleted ? " (a removed product)" : ""}`;
   if (barcode) {
     const dupe = items.find((p) => p.barcode === barcode);
-    if (dupe) throw new Error(`Barcode already used by "${dupe.name}"`);
+    if (dupe) throw new Error(`Barcode already used by ${label(dupe)}`);
   }
   if (sku) {
     const dupe = items.find((p) => p.sku === sku);
-    if (dupe) throw new Error(`SKU already used by "${dupe.name}"`);
+    if (dupe) throw new Error(`SKU already used by ${label(dupe)}`);
   }
 }
 

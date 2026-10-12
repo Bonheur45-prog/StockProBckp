@@ -432,5 +432,49 @@ const user = (role) => ({ id: role === "owner" ? OWNER : MANAGER, storeId: STORE
   ok("a new email still works (201) with the email normalised", r.res.statusCode === 201 && r.err === null);
 }
 
+// ------------------------------------------- product delete/restore audit
+{
+  // Deletes made in the app arrive through sync push, not the REST routes.
+  const prods = new Map();
+  const mk = (doc) => ({
+    ...doc, _id: new mongoose.Types.ObjectId(), updatedAt: new Date("2026-01-01"),
+    async save() { return this; },
+  });
+  Product.findOne = async (q) => (q.clientId && typeof q.clientId === "string" ? prods.get(q.clientId) || null : null);
+  Product.create = async (doc) => { const d = mk(doc); prods.set(doc.clientId, d); return d; };
+  const run = async (products, role = "owner") => {
+    audits.length = 0;
+    const res = fakeRes();
+    await push({ body: { products }, user: user(role) }, res, (e) => { throw e; });
+    return res;
+  };
+  const base = { clientId: "pa1", name: "Cement 50kg", sku: "CEM-1", sellPrice: 100, costPrice: 80 };
+  const acts = () => audits.map((a) => a.action);
+
+  await run([{ ...base, updatedAt: "2026-02-01T00:00:00Z" }]);
+  ok("new product via sync is logged as product.create with its name", acts().join() === "product.create" && audits[0].metadata.name === "Cement 50kg");
+
+  await run([{ ...base, name: "Cement 50kg", sellPrice: 120, updatedAt: "2026-03-01T00:00:00Z" }]);
+  ok("a plain edit via sync is NOT logged (no flood)", audits.length === 0);
+
+  await run([{ ...base, isDeleted: true, updatedAt: "2026-04-01T00:00:00Z" }]);
+  ok("deleting via sync logs product.delete with name + sku", acts().join() === "product.delete" && audits[0].metadata.sku === "CEM-1" && String(audits[0].userId) === OWNER);
+
+  await run([{ ...base, isDeleted: true, updatedAt: "2026-04-02T00:00:00Z" }]);
+  ok("re-pushing an already-deleted product logs nothing", audits.length === 0);
+
+  await run([{ ...base, isDeleted: false, updatedAt: "2026-05-01T00:00:00Z" }]);
+  ok("restoring via sync logs product.restore", acts().join() === "product.restore");
+
+  await run([{ ...base, isDeleted: true, updatedAt: "2025-12-01T00:00:00Z" }]);
+  ok("a stale (older) delete is ignored and not logged", audits.length === 0);
+
+  await run([{ clientId: "pa2", name: "Nails", sku: "N-1", sellPrice: 5, isDeleted: true, updatedAt: "2026-02-01T00:00:00Z" }]);
+  ok("made-and-removed before first sync: stored deleted, logs create then delete", acts().join() === "product.create,product.delete" && prods.get("pa2").isDeleted === true);
+
+  const res = await run([{ ...base, clientId: "pa3", sku: "X", isDeleted: true, updatedAt: "2026-02-01T00:00:00Z" }], "cashier");
+  ok("a cashier's product push is rejected and logs nothing", audits.length === 0 && res.body.errors.length === 1);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
